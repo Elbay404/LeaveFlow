@@ -1,0 +1,1017 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: baseline
+      author: bayrem
+      changes:
+        - tagDatabase:
+            tag: baseline
+
+  - changeSet:
+       id: seed-modules
+       author: bayrem
+       changes:
+         - insert :
+             tableName: modules
+             columns:
+               - column:
+                   name: name
+                   value: USER
+               - column:
+                   name: description
+                   value: user management
+         - insert:
+             tableName: modules
+             columns:
+               - column:
+                   name: name
+                   value : DEPARTMENT
+               - column :
+                   name: description
+                   value: department management
+
+         - insert:
+             tableName: modules
+             columns:
+               - column:
+                   name: name
+                   value: LEAVE
+               - column:
+                   name: description
+                   value: leave management
+
+
+  - changeSet:
+      id: seed-permissions
+      author: bayrem
+      changes:
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: USER_CREATE
+              - column:
+                  name: description
+                  value: Create users
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'USER')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: USER_READ
+              - column:
+                  name: description
+                  value: Read users
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'USER')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: USER_UPDATE
+              - column:
+                  name: description
+                  value: Update users
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'USER')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: DEPARTMENT_CREATE
+              - column:
+                  name: description
+                  value: Create departments
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'DEPARTMENT')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: DEPARTMENT_READ
+              - column:
+                  name: description
+                  value: Read departments
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'DEPARTMENT')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: DEPARTMENT_UPDATE
+              - column:
+                  name: description
+                  value: Update departments
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'DEPARTMENT')"
+
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_CREATE
+              - column:
+                  name: description
+                  value: Create leave requests
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_READ_OWN
+              - column:
+                  name: description
+                  value: Read own leave requests
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_CANCEL_OWN
+              - column:
+                  name: description
+                  value: Cancel own leave requests
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_READ_TEAM
+              - column:
+                  name: description
+                  value: Read team leave requests
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_APPROVE
+              - column:
+                  name: description
+                  value: Approve leave requests
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_REJECT
+              - column:
+                  name: description
+                  value: Reject leave requests
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_READ_ALL
+              - column:
+                  name: description
+                  value: Read all leave requests
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_MANAGE_ALL
+              - column:
+                  name: description
+                  value: Manage all leave requests
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE')"
+
+  - changeSet:
+      id: add-manager-to-users
+      author: bayrem
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: manager_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+
+        - addForeignKeyConstraint:
+            baseTableName: users
+            baseColumnNames: manager_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_users_manager
+
+  - changeSet:
+      id: add-ldap-uid-to-users
+      author: bayrem
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: ldap_uid
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+                    unique: true
+
+
+  - changeSet:
+      id: add-hire-date-to-users
+      author: bayrem
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: hire_date
+                  type: date
+                  constraints:
+                    nullable: true
+
+
+  - changeSet:
+      id: add-annual-leave-balance-to-users
+      author: bayrem
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: annual_leave_balance
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+
+  - changeSet:
+      id: add-last-leave-accrual-date
+      author: bayrem
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: last_leave_accrual_date
+                  type: date
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: create-leave-types-table
+      author: bayrem
+      changes:
+        - createTable:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: code
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: description
+                  type: varchar(500)
+
+              - column:
+                  name: consumes_balance
+                  type: boolean
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: requires_document
+                  type: boolean
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: seed-leave-types
+      author: bayrem
+      changes:
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: ANNUAL
+              - column:
+                  name: name
+                  value: Annual Leave
+              - column:
+                  name: description
+                  value: Paid annual leave
+              - column:
+                  name: consumes_balance
+                  valueBoolean: true
+              - column:
+                  name: requires_document
+                  valueBoolean: false
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: SICK
+              - column:
+                  name: name
+                  value: Sick Leave
+              - column:
+                  name: description
+                  value: Sick leave
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: true
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: MATERNITY
+              - column:
+                  name: name
+                  value: Maternity Leave
+              - column:
+                  name: description
+                  value: Maternity leave
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: true
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: UNPAID
+              - column:
+                  name: name
+                  value: Unpaid Leave
+              - column:
+                  name: description
+                  value: Unpaid leave
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: false
+
+  - changeSet:
+      id: add-max-days-to-leave-types
+      author: bayrem
+      changes:
+        - addColumn:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: max_days
+                  type: int
+  - changeSet:
+      id: set-leave-type-max-days
+      author: bayrem
+      changes:
+
+        - update:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: max_days
+                  valueNumeric: 112
+            where: code = 'MATERNITY'
+
+
+
+  - changeSet:
+      id: seed-family-leave-types
+      author: bayrem
+      changes:
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: BIRTH
+              - column:
+                  name: name
+                  value: Birth of Child
+              - column:
+                  name: description
+                  value: Leave for the birth of a child
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: true
+              - column:
+                  name: max_days
+                  valueNumeric: 2
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: MARRIAGE
+              - column:
+                  name: name
+                  value: Marriage
+              - column:
+                  name: description
+                  value: Employee marriage leave
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: true
+              - column:
+                  name: max_days
+                  valueNumeric: 3
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: CHILD_MARRIAGE
+              - column:
+                  name: name
+                  value: Child Marriage
+              - column:
+                  name: description
+                  value: Leave for the marriage of an employee's child
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: true
+              - column:
+                  name: max_days
+                  valueNumeric: 1
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: SPOUSE_DEATH
+              - column:
+                  name: name
+                  value: Spouse Death
+              - column:
+                  name: description
+                  value: Leave following the death of a spouse
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: true
+              - column:
+                  name: max_days
+                  valueNumeric: 3
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: CHILD_DEATH
+              - column:
+                  name: name
+                  value: Child Death
+              - column:
+                  name: description
+                  value: Leave following the death of a child
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: true
+              - column:
+                  name: max_days
+                  valueNumeric: 3
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: PARENT_DEATH
+              - column:
+                  name: name
+                  value: Parent or Grandparent Death
+              - column:
+                  name: description
+                  value: Leave following the death of a parent or grandparent
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: true
+              - column:
+                  name: max_days
+                  valueNumeric: 2
+
+        - insert:
+            tableName: leave_types
+            columns:
+              - column:
+                  name: code
+                  value: SIBLING_DEATH
+              - column:
+                  name: name
+                  value: Sibling Death
+              - column:
+                  name: description
+                  value: Leave following the death of a sibling
+              - column:
+                  name: consumes_balance
+                  valueBoolean: false
+              - column:
+                  name: requires_document
+                  valueBoolean: true
+              - column:
+                  name: max_days
+                  valueNumeric: 1
+
+  - changeSet:
+      id: create-leaves-table
+      author: bayrem
+      changes:
+        - createTable:
+            tableName: leaves
+            columns:
+
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: leave_type_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: start_date
+                  type: date
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: end_date
+                  type: date
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: duration
+                  type: int
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: reason
+                  type: varchar(1000)
+
+              - column:
+                  name: requested_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: status
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: approved_by
+                  type: bigint
+
+              - column:
+                  name: approved_at
+                  type: timestamp
+
+              - column:
+                  name: rejection_reason
+                  type: varchar(1000)
+
+              - column:
+                  name: document_name
+                  type: varchar(255)
+
+              - column:
+                  name: document_path
+                  type: varchar(500)
+
+        - addForeignKeyConstraint:
+            baseTableName: leaves
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_leaves_user
+
+        - addForeignKeyConstraint:
+            baseTableName: leaves
+            baseColumnNames: leave_type_id
+            referencedTableName: leave_types
+            referencedColumnNames: id
+            constraintName: fk_leaves_leave_type
+
+        - addForeignKeyConstraint:
+            baseTableName: leaves
+            baseColumnNames: approved_by
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_leaves_approved_by
+
+
+  - changeSet:
+      id: create-holidays-table
+      author: bayrem
+      changes:
+
+        - createTable:
+            tableName: holidays
+            columns:
+
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: date
+                  type: date
+                  constraints:
+                    nullable: false
+                    unique: true
+
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: description
+                  type: varchar(500)
+
+  - changeSet:
+      id: seed-holidays-2026
+      author: bayrem
+      changes:
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-01-01
+              - column:
+                  name: name
+                  value: New Year's Day
+              - column:
+                  name: description
+                  value: New Year's Day
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-03-20
+              - column:
+                  name: name
+                  value: Independence Day & Eid al-Fitr
+              - column:
+                  name: description
+                  value: Independence Day and Eid al-Fitr
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-03-21
+              - column:
+                  name: name
+                  value: Eid al-Fitr Holiday
+              - column:
+                  name: description
+                  value: Eid al-Fitr holiday
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-03-22
+              - column:
+                  name: name
+                  value: Eid al-Fitr Holiday
+              - column:
+                  name: description
+                  value: Eid al-Fitr holiday
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-04-09
+              - column:
+                  name: name
+                  value: Martyrs' Day
+              - column:
+                  name: description
+                  value: Martyrs' Day
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-05-01
+              - column:
+                  name: name
+                  value: Labour Day
+              - column:
+                  name: description
+                  value: Labour Day
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-05-27
+              - column:
+                  name: name
+                  value: Eid al-Adha
+              - column:
+                  name: description
+                  value: Eid al-Adha holiday
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-05-28
+              - column:
+                  name: name
+                  value: Eid al-Adha Holiday
+              - column:
+                  name: description
+                  value: Eid al-Adha holiday
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-06-16
+              - column:
+                  name: name
+                  value: Islamic New Year
+              - column:
+                  name: description
+                  value: Islamic New Year (Muharram)
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-07-25
+              - column:
+                  name: name
+                  value: Republic Day
+              - column:
+                  name: description
+                  value: Republic Day
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-08-13
+              - column:
+                  name: name
+                  value: Women's Day
+              - column:
+                  name: description
+                  value: Women's Day
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-08-25
+              - column:
+                  name: name
+                  value: Prophet Muhammad's Birthday
+              - column:
+                  name: description
+                  value: Mouled
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-10-15
+              - column:
+                  name: name
+                  value: Evacuation Day
+              - column:
+                  name: description
+                  value: Evacuation Day
+
+        - insert:
+            tableName: holidays
+            columns:
+              - column:
+                  name: date
+                  valueDate: 2026-12-17
+              - column:
+                  name: name
+                  value: Revolution and Youth Day
+              - column:
+                  name: description
+                  value: Revolution and Youth Day
+
+
+  - changeSet:
+      id: add-updated-at-to-leaves
+      author: bayrem
+      changes:
+        - addColumn:
+            tableName: leaves
+            columns:
+              - column:
+                  name: updated_at
+                  type: timestamp
+
+  - changeSet:
+      id: add-token-version-to-users
+      author: bayrem
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: token_version
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: remove-last-leave-accrual-date
+      author: bayrem
+      changes:
+        - dropColumn:
+            tableName: users
+            columnName: last_leave_accrual_date
+
+  - changeSet:
+      id: create-password-reset-tokens-table
+      author: bayrem
+      changes:
+        - createTable:
+            tableName: password_reset_tokens
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: token_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: expires_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: used
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: password_reset_tokens
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_password_reset_token_user
