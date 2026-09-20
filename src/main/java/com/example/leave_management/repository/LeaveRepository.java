@@ -30,4 +30,9 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
             @Param("departmentId") Long departmentId
     );
 
+    List<Leave> findByStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            LocalDate endDate,
+            LocalDate startDate
+    );
+
 }

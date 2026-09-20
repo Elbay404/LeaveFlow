@@ -5,6 +5,7 @@ import com.example.leave_management.repository.UserRepository;
 import com.example.leave_management.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,20 +31,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain //allows the request to continue to the next filter
+            FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        /* Allow CORS preflight requests
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }*/
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        Cookie[] cookies = request.getCookies();
+
+        if (cookies == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authHeader.substring(7); //Bearer
+        String token = null;
+
+        for (Cookie cookie : cookies) {
+            if ("jwt".equals(cookie.getName())) {
+                token = cookie.getValue();
+                break;
+            }
+        }
+
+        if (token == null || token.isBlank()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String email = jwtService.extractEmail(token);
-
         Integer tokenVersion = jwtService.extractTokenVersion(token);
 
         User user = userRepository.findByEmail(email)
@@ -54,18 +72,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && user.getTokenVersion().equals(tokenVersion)
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                String role = user.getRole().getName();
+            String role = user.getRole().getName();
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                user,
-                                null,
-                                List.of(new SimpleGrantedAuthority("ROLE_" + role))
-                        );
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            user,
+                            null,
+                            List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                    );
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
-
-            filterChain.doFilter(request, response);
+            SecurityContextHolder.getContext()
+                    .setAuthentication(authentication);
         }
+
+        filterChain.doFilter(request, response);
+    }
     }

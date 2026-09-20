@@ -5,6 +5,7 @@ import com.example.leave_management.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -32,26 +33,40 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http.csrf(AbstractHttpConfigurer::disable)
+
+                .cors(cors -> {})
+
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))  //no server session
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS //no session server
+                        )
+                )
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-
                                 "/api/ldap/test",
                                 "/api/auth/login",
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
-                        .requestMatchers("/api/ldap/migrate/**").hasRole("HR")
-                        .anyRequest().authenticated()
+                                "/v3/api-docs/**")
+                        .permitAll()
+
+                        .requestMatchers("/api/ldap/migrate/**")
+                        .hasRole("HR")
+
+                        .anyRequest()
+                        .authenticated()
                 )
+
                 .exceptionHandling(exception -> exception
+
                         .authenticationEntryPoint((request, response, authException) -> {
 
                             ErrorResponse error = new ErrorResponse(
@@ -60,7 +75,10 @@ public class SecurityConfig {
                                     LocalDateTime.now().format(FORMATTER)
                             );
 
-                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.setStatus(
+                                    HttpStatus.UNAUTHORIZED.value()
+                            );
+
                             response.setContentType("application/json");
 
                             response.getWriter().write(
@@ -77,6 +95,7 @@ public class SecurityConfig {
                                     )
                             );
                         })
+
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
 
                             ErrorResponse error = new ErrorResponse(
@@ -85,7 +104,10 @@ public class SecurityConfig {
                                     LocalDateTime.now().format(FORMATTER)
                             );
 
-                            response.setStatus(HttpStatus.FORBIDDEN.value());
+                            response.setStatus(
+                                    HttpStatus.FORBIDDEN.value()
+                            );
+
                             response.setContentType("application/json");
 
                             response.getWriter().write(
@@ -103,7 +125,11 @@ public class SecurityConfig {
                             );
                         })
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }

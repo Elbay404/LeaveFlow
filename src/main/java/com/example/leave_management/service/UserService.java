@@ -122,6 +122,7 @@ public class UserService {
                 .email(email)
                 .ldapUid(ldapUid)
                 .phone(request.phone())
+                .birthDate(request.birthDate())
                 .password(hashedPassword)
                 .role(role)
                 .department(department)
@@ -291,6 +292,9 @@ public class UserService {
         if (request.hireDate() != null) {
             user.setHireDate(request.hireDate());
         }
+        if (request.birthDate() != null) {
+            user.setBirthDate(request.birthDate());
+        }
 
         user.setRole(role);
         user.setDepartment(department);
@@ -338,6 +342,7 @@ public class UserService {
                 user.getRole().getName(),
                 user.getDepartment().getName(),
                 user.getHireDate(),
+                user.getBirthDate(),
                 user.getAnnualLeaveBalance()
         );
     }

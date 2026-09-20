@@ -10,12 +10,9 @@ public record UserResponse(
         String phone,
         boolean active,
         boolean mustChangePassword,
-       // Long roleId,
         String roleName,
-       // Long departmentId,
         String departmentName,
         LocalDate hireDate,
+        LocalDate birthDate,
         Integer annualLeaveBalance
-
-) {
-}
+) {}

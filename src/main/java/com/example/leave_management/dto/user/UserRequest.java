@@ -10,5 +10,6 @@ public record UserRequest(
         Long roleId,
         Long departmentId,
         LocalDate hireDate,
+        LocalDate birthDate,
         Boolean active
 ) {}

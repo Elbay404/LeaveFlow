@@ -2,6 +2,7 @@ package com.example.leave_management.service;
 
 import com.example.leave_management.dto.leave.LeaveRequest;
 import com.example.leave_management.dto.leave.LeaveResponse;
+import com.example.leave_management.dto.leave.LeaveUserResponse;
 import com.example.leave_management.entity.Leave;
 import com.example.leave_management.entity.LeaveType;
 import com.example.leave_management.entity.User;
@@ -334,7 +335,7 @@ public class LeaveService {
         emailService.sendLeaveDecisionEmail(
                 employee.getEmail(),
                 employee.getManager().getEmail(),
-                employee.getFirstName() + " " + employee.getLastName(),
+                employee.getFirstName() + " " + employee.getLastName().toUpperCase(),
                 leave.getLeaveType().getCode(),
                 leave.getStartDate().toString(),
                 leave.getEndDate().toString(),
@@ -442,7 +443,13 @@ public class LeaveService {
 
         return new LeaveResponse(
                 leave.getId(),
-                leave.getUser().getId(),
+                new LeaveUserResponse(
+                        leave.getUser().getId(),
+                        leave.getUser().getFirstName(),
+                        leave.getUser().getLastName(),
+                        leave.getUser().getEmail(),
+                        leave.getUser().getDepartment().getName()
+                ),
                 leave.getLeaveType().getCode(),
                 leave.getStartDate(),
                 leave.getEndDate(),
@@ -515,5 +522,25 @@ public class LeaveService {
         }
     }
 
+    public List<LeaveResponse> findAllLeaves() {
 
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser =
+                (User) authentication.getPrincipal();
+
+        if (!authorizationService.hasPermission(
+                currentUser, "LEAVE_READ_ALL")) {
+
+            throw new AccessDeniedException(
+                    "You do not have permission to view all leaves"
+            );
+        }
+
+        return leaveRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
 }

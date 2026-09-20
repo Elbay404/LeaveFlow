@@ -61,6 +61,11 @@ public class LeaveController {
         return leaveService.findMyTeamLeaves();
     }
 
+    @GetMapping("/all")
+    public List<LeaveResponse> findAllLeaves() {
+        return leaveService.findAllLeaves();
+    }
+
     @GetMapping("/department/{departmentId}")
     public List<LeaveResponse> findByDepartmentId(
             @PathVariable Long departmentId

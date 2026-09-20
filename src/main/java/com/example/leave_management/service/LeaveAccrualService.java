@@ -13,7 +13,7 @@ public class LeaveAccrualService {
 
     private final UserRepository userRepository;
 
-    @Scheduled(cron = "0 0 0 1 * *") //auto running at midnight everyyyy month
+    @Scheduled(cron = "0 0 0 1 * *") //auto running at midnight every month
     public void accrueLeave() {
 
 

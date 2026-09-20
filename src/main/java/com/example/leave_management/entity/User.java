@@ -40,6 +40,8 @@ public class User {
 
     @Column(nullable = false)
     private boolean mustChangePassword = true;
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
     @ManyToOne
     @JoinColumn(name = "role_id", nullable = false)

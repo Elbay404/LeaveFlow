@@ -8,8 +8,9 @@ import java.time.LocalDateTime;
 public record LeaveResponse(
 
         Long id,
+        LeaveUserResponse user,
 
-        Long userId,
+
 
         String leaveType,
 

@@ -1,11 +1,14 @@
 package com.example.leave_management.service;
 
+import com.example.leave_management.dto.auth.MeResponse;
 import com.example.leave_management.dto.ldap.ResetPasswordRequest;
 import com.example.leave_management.entity.PasswordResetToken;
+import com.example.leave_management.entity.RolePermission;
 import com.example.leave_management.entity.User;
 import com.example.leave_management.exception.InvalidCredentialsException;
 import com.example.leave_management.exception.ResourceNotFoundException;
 import com.example.leave_management.repository.PasswordResetTokenRepository;
+import com.example.leave_management.repository.RolePermissionRepository;
 import com.example.leave_management.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -13,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import java.nio.charset.StandardCharsets;
@@ -34,6 +38,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final RolePermissionRepository rolePermissionRepository;
 
 
     public String login(String email, String password) {
@@ -242,6 +247,39 @@ public class AuthService {
         } catch (NoSuchAlgorithmException exception) {
             throw new RuntimeException("Failed to hash reset token");
         }
+    }
+
+    public MeResponse getCurrentUser(User user) {
+
+        List<RolePermission> rolePermissions =
+                rolePermissionRepository.findByRole(user.getRole());
+
+        List<String> permissions = rolePermissions.stream()
+                .map(rolePermission ->
+                        rolePermission.getPermission().getName())
+                .toList();
+
+        List<String> modules = rolePermissions.stream()
+                .map(rolePermission ->
+                        rolePermission.getPermission().getModule().getName())
+                .distinct()
+                .toList();
+
+        return new MeResponse(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.isActive(),
+                user.getRole().getName(),
+                user.getDepartment() != null
+                        ? user.getDepartment().getName()
+                        : null,
+                user.getAnnualLeaveBalance(),
+                user.isMustChangePassword(),
+                permissions,
+                modules
+        );
     }
 
 }

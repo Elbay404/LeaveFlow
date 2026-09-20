@@ -1,12 +1,17 @@
 package com.example.leave_management.controller;
 
 import com.example.leave_management.dto.auth.LoginRequest;
+import com.example.leave_management.dto.auth.LoginResponse;
+import com.example.leave_management.dto.auth.MeResponse;
 import com.example.leave_management.dto.ldap.ChangePasswordRequest;
 import com.example.leave_management.dto.ldap.ResetPasswordRequest;
 import com.example.leave_management.entity.User;
 import com.example.leave_management.service.AuthService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseCookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -19,21 +24,39 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public String login(@Valid @RequestBody LoginRequest request) {
+    public String login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletResponse response ) {
 
-        return authService.login(
+        String token = authService.login(
                 request.email(),
                 request.password()
         );
+
+        ResponseCookie cookie = ResponseCookie.from("jwt", token)
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(60 * 60)
+                .sameSite("Lax")
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
+
+        return "Login successful";
     }
 
+
+    @GetMapping("/me")
+    public MeResponse me(@AuthenticationPrincipal User user) {
+        return authService.getCurrentUser(user);
+    }
 
 
     @PostMapping("/change-password")
     public String changePassword(
             @AuthenticationPrincipal User user,
-            @Valid @RequestBody ChangePasswordRequest request
-    ) {
+            @Valid @RequestBody ChangePasswordRequest request ) {
 
         authService.changePassword(
                 user.getEmail(),
