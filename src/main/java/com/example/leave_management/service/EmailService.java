@@ -98,7 +98,10 @@ public class EmailService {
                     new MimeMessageHelper(message, true); //supprt attachments
 
             helper.setTo(employeeEmail);
-            helper.setCc(managerEmail);
+
+            if (managerEmail != null && !managerEmail.isBlank()) {
+                helper.setCc(managerEmail);
+            }
             helper.setSubject("Leave Request Submitted");
 
             helper.setText(
@@ -140,7 +143,10 @@ public class EmailService {
                     new MimeMessageHelper(message, true);
 
             helper.setTo(employeeEmail);
-            helper.setCc(managerEmail);
+
+            if (managerEmail != null && !managerEmail.isBlank()) {
+                helper.setCc(managerEmail);
+            }
             helper.setSubject("Leave Request " + status);
 
             String text =
@@ -207,7 +213,7 @@ public class EmailService {
                     "Hello " + firstName + ",\n\n" +
                             "We received a request to reset your password.\n\n" +
                             "Use the following link to reset your password:\n" +
-                            "http://localhost:5173/reset-password?token=" + resetToken+ "\n\n" +
+                            "http://localhost:3000/reset-password?token=" + resetToken+ "\n\n" +
                             "This link will expire in 15 minutes.\n\n" +
                             "If you did not request this reset, you can ignore this email.\n\n" +
                             "Regards,\n" +

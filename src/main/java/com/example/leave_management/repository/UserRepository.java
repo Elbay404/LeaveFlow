@@ -46,4 +46,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("search") String search,
             Pageable pageable
     );
+
+    Optional<User> findFirstByRole_Name(String roleName);
 }

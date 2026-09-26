@@ -1,5 +1,6 @@
 package com.example.leave_management.service;
 
+import com.example.leave_management.dto.auth.LoginResult;
 import com.example.leave_management.dto.auth.MeResponse;
 import com.example.leave_management.dto.ldap.ResetPasswordRequest;
 import com.example.leave_management.entity.PasswordResetToken;
@@ -41,7 +42,7 @@ public class AuthService {
     private final RolePermissionRepository rolePermissionRepository;
 
 
-    public String login(String email, String password) {
+    public LoginResult login(String email, String password){
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
@@ -63,12 +64,19 @@ public class AuthService {
             );
         }
 
-        return jwtService.generateToken(
+        String token = jwtService.generateToken(
                 user.getEmail(),
                 user.getRole().getName(),
                 user.getTokenVersion()
         );
+
+        return new LoginResult(
+                token,
+                user.isMustChangePassword()
+        );
     }
+
+
 
 
     public void changePassword(
@@ -280,6 +288,11 @@ public class AuthService {
                 permissions,
                 modules
         );
+    }
+
+    public void logout(User user) {
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        userRepository.save(user);
     }
 
 }

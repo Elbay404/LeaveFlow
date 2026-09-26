@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Toaster, toast } from "sonner";
 import {
   CalendarDays,
   Clock3,
@@ -299,7 +300,11 @@ export default function LeavesPage() {
         matchesStartDate &&
         matchesEndDate
       );
-    });
+    }).sort(
+      (a, b) =>
+        new Date(b.requestedAt).getTime() -
+        new Date(a.requestedAt).getTime(),
+    );
   }, [
     displayedLeaves,
     searchTerm,
@@ -381,27 +386,22 @@ export default function LeavesPage() {
     setFormError("");
 
     if (!leaveType) {
-      setFormError("Please select a leave type.");
+      toast.error("Please select a leave type.");
       return;
     }
 
     if (!startDate) {
-      setFormError("Please select a start date.");
+      toast.error("Please select a start date.");
       return;
     }
 
     if (!endDate) {
-      setFormError("Please select an end date.");
+      toast.error("Please select an end date.");
       return;
     }
 
     if (endDate < startDate) {
-      setFormError("End date cannot be before start date.");
-      return;
-    }
-
-    if (!reason.trim()) {
-      setFormError("Please provide a reason for your leave.");
+      toast.error("End date cannot be before start date.");
       return;
     }
 
@@ -415,9 +415,7 @@ export default function LeavesPage() {
     }
 
     if (selectedLeaveType.requiresDocument && !document) {
-      setFormError(
-        "A supporting document is required for this leave type."
-      );
+      toast.error("A supporting document is required for this leave type.");
       return;
     }
 
@@ -438,6 +436,8 @@ export default function LeavesPage() {
       const updatedUser = await getCurrentUser();
       setUser(updatedUser);
 
+      toast.success("Leave request submitted successfully.");
+
       setShowRequestForm(false);
 
       setLeaveType("");
@@ -453,7 +453,7 @@ export default function LeavesPage() {
       if (error instanceof Error) {
         setFormError(error.message);
       } else {
-        setFormError(
+        toast.error(
           "Failed to submit leave request. Please try again."
         );
       }
@@ -471,6 +471,8 @@ export default function LeavesPage() {
 
       await refreshLeaves();
 
+      toast.success("Leave request approved successfully.");
+
       setShowLeaveDetails(false);
       setSelectedLeave(null);
     } catch (error) {
@@ -479,7 +481,7 @@ export default function LeavesPage() {
       if (error instanceof Error) {
         setActionError(error.message);
       } else {
-        setActionError("Failed to approve leave request.");
+        toast.error("Failed to approve leave request.");
       }
     } finally {
       setIsActionLoading(false);
@@ -488,7 +490,7 @@ export default function LeavesPage() {
 
   const handleRejectLeave = async (leaveId: number) => {
     if (!rejectionReason.trim()) {
-      setActionError("Please provide a rejection reason.");
+      toast.error("Please provide a rejection reason.");
       return;
     }
 
@@ -504,6 +506,8 @@ export default function LeavesPage() {
 
       await refreshLeaves();
 
+      toast.success("Leave request rejected successfully.");
+
       setShowLeaveDetails(false);
       setSelectedLeave(null);
       setRejectionReason("");
@@ -513,7 +517,7 @@ export default function LeavesPage() {
       if (error instanceof Error) {
         setActionError(error.message);
       } else {
-        setActionError("Failed to reject leave request.");
+        toast.error("Failed to reject leave request.");
       }
     } finally {
       setIsActionLoading(false);
@@ -529,6 +533,8 @@ export default function LeavesPage() {
 
       await refreshLeaves();
 
+      toast.success("Leave request cancelled successfully.");
+
       setShowLeaveDetails(false);
       setSelectedLeave(null);
     } catch (error) {
@@ -537,7 +543,7 @@ export default function LeavesPage() {
       if (error instanceof Error) {
         setActionError(error.message);
       } else {
-        setActionError("Failed to cancel leave request.");
+        toast.error("Failed to cancel leave request.");
       }
     } finally {
       setIsActionLoading(false);
@@ -592,20 +598,36 @@ export default function LeavesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <>
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        duration={4000}
+        toastOptions={{
+          classNames: {
+            toast:
+              "w-[420px] min-h-[72px] rounded-2xl border shadow-xl px-5 py-4",
+            title: "text-base font-bold",
+            description: "text-sm font-medium",
+          },
+        }}
+      />
+
+      <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-3xl bg-slate-950 px-6 py-5 shadow-lg sm:flex-row sm:items-center sm:justify-between sm:px-7">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-blue-300 ring-1 ring-white/10">
               <CalendarDays size={24} />
             </div>
 
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              <h1 className="text-3xl font-bold tracking-tight text-white">
                 Leave Management
               </h1>
 
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-slate-400">
                 Manage your leave requests and track their status.
               </p>
             </div>
@@ -617,124 +639,124 @@ export default function LeavesPage() {
               setFormError("");
               setShowRequestForm(true);
             }}
-            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+            className="flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md"
           >
             Request Leave
           </button>
         </div>
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-slate-500">
                 Leave Balance
               </p>
 
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-gray-900">
+                <span className="text-4xl font-bold text-slate-900">
                   {user?.annualLeaveBalance ?? 0}
                 </span>
 
-                <span className="text-sm font-medium text-gray-500">
+                <span className="text-sm font-medium text-slate-500">
                   days available
                 </span>
               </div>
 
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-slate-500">
                 Your current annual leave balance
               </p>
             </div>
 
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-green-600">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
               <CalendarDays size={24} />
             </div>
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">
+                <p className="text-sm font-medium text-slate-500">
                   Pending
                 </p>
 
-                <p className="mt-2 text-3xl font-bold text-gray-900">
+                <p className="mt-2 text-3xl font-bold text-slate-900">
                   {pendingLeaves}
                 </p>
 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-500">
                   awaiting approval
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
                 <Clock3 size={22} />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">
+                <p className="text-sm font-medium text-slate-500">
                   Approved
                 </p>
 
-                <p className="mt-2 text-3xl font-bold text-gray-900">
+                <p className="mt-2 text-3xl font-bold text-slate-900">
                   {approvedLeaves}
                 </p>
 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-500">
                   approved requests
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-100 text-green-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
                 <CircleCheck size={22} />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">
+                <p className="text-sm font-medium text-slate-500">
                   Rejected
                 </p>
 
-                <p className="mt-2 text-3xl font-bold text-gray-900">
+                <p className="mt-2 text-3xl font-bold text-slate-900">
                   {rejectedLeaves}
                 </p>
 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-500">
                   rejected requests
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-100 text-red-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-red-600">
                 <CircleX size={22} />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">
+                <p className="text-sm font-medium text-slate-500">
                   Cancelled
                 </p>
 
-                <p className="mt-2 text-3xl font-bold text-gray-900">
+                <p className="mt-2 text-3xl font-bold text-slate-900">
                   {cancelledLeaves}
                 </p>
 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-500">
                   cancelled requests
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-gray-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
                 <Ban size={22} />
               </div>
             </div>
@@ -742,15 +764,15 @@ export default function LeavesPage() {
         </div>
 
         {showRequestForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-slate-900">
                     Request Leave
                   </h2>
 
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-slate-500">
                     Submit a new leave request for approval.
                   </p>
                 </div>
@@ -758,14 +780,14 @@ export default function LeavesPage() {
                 <button
                   type="button"
                   onClick={() => setShowRequestForm(false)}
-                  className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                  className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                 >
                   <CircleX size={24} />
                 </button>
               </div>
 
               <div className="mt-6">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   Leave Type{" "}
                   <span className="text-red-500">*</span>
                 </label>
@@ -773,7 +795,7 @@ export default function LeavesPage() {
                 <select
                   value={leaveType}
                   onChange={(e) => setLeaveType(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
                   <option value="" disabled>
                     Select leave type
@@ -789,7 +811,7 @@ export default function LeavesPage() {
 
               <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
                     Start Date{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -798,12 +820,12 @@ export default function LeavesPage() {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
                     End Date{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -812,30 +834,30 @@ export default function LeavesPage() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
               </div>
 
               <div className="mt-5">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   Duration
                 </label>
 
-                <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                  <span className="text-lg font-semibold text-gray-900">
+                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <span className="text-lg font-semibold text-slate-900">
                     {duration}
                   </span>
 
-                  <span className="ml-2 text-sm text-gray-500">
+                  <span className="ml-2 text-sm text-slate-500">
                     working {duration === 1 ? "day" : "days"}
                   </span>
                 </div>
               </div>
 
               <div className="mt-5">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Reason <span className="text-red-500">*</span>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Reason 
                 </label>
 
                 <textarea
@@ -843,12 +865,12 @@ export default function LeavesPage() {
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Enter the reason for your leave..."
                   rows={4}
-                  className="w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
 
               <div className="mt-5">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   Supporting Document{" "}
                   {selectedLeaveType?.requiresDocument && (
                     <span className="text-red-500">*</span>
@@ -856,13 +878,13 @@ export default function LeavesPage() {
                 </label>
 
                 {document ? (
-                  <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-4">
+                  <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-gray-700">
+                      <p className="truncate text-sm font-medium text-slate-700">
                         {document.name}
                       </p>
 
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         {(document.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
@@ -876,12 +898,12 @@ export default function LeavesPage() {
                     </button>
                   </div>
                 ) : (
-                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-6 py-8 text-center transition hover:border-blue-300 hover:bg-blue-50">
-                    <div className="text-sm font-medium text-gray-700">
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-center transition hover:border-emerald-300 hover:bg-blue-50">
+                    <div className="text-sm font-medium text-slate-700">
                       Upload a supporting document
                     </div>
 
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-slate-500">
                       PDF, JPG or PNG · Maximum 5 MB
                     </p>
 
@@ -896,9 +918,7 @@ export default function LeavesPage() {
                         }
 
                         if (file.size > MAX_FILE_SIZE) {
-                          setFormError(
-                            "File size must not exceed 5 MB."
-                          );
+                          toast.error("File size must not exceed 5 MB.");
                           e.target.value = "";
                           return;
                         }
@@ -922,11 +942,11 @@ export default function LeavesPage() {
                 </div>
               )}
 
-              <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-5">
+              <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-5">
                 <button
                   type="button"
                   onClick={() => setShowRequestForm(false)}
-                  className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Cancel
                 </button>
@@ -935,7 +955,7 @@ export default function LeavesPage() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting
                     ? "Submitting..."
@@ -946,27 +966,27 @@ export default function LeavesPage() {
           </div>
         )}
 
-        <div className="mt-8 rounded-2xl border border-gray-100 bg-white shadow-sm">
-          <div className="border-b border-gray-100 p-6">
+        <div className="mt-8 rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <div className="border-b border-slate-100 p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-slate-900">
                   Leave Requests
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-500">
                   View and manage leave requests based on your permissions.
                 </p>
               </div>
 
-              <div className="flex rounded-xl bg-gray-100 p-1">
+              <div className="flex rounded-xl bg-slate-100 p-1">
                 <button
                   type="button"
                   onClick={() => setLeaveView("MY")}
                   className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                     leaveView === "MY"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "bg-white text-blue-700 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   My Leaves
@@ -978,8 +998,8 @@ export default function LeavesPage() {
                     onClick={() => setLeaveView("TEAM")}
                     className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                       leaveView === "TEAM"
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                        ? "bg-white text-blue-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
                     }`}
                   >
                     Team Leaves
@@ -992,8 +1012,8 @@ export default function LeavesPage() {
                     onClick={() => setLeaveView("ALL")}
                     className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                       leaveView === "ALL"
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                        ? "bg-white text-blue-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   All Leaves
@@ -1006,7 +1026,7 @@ export default function LeavesPage() {
               <div className="relative w-full sm:w-52">
                 <Search
                   size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
                 <input
@@ -1014,7 +1034,7 @@ export default function LeavesPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search employee..."
-                  className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
 
@@ -1025,7 +1045,7 @@ export default function LeavesPage() {
                     onChange={(e) =>
                       setSelectedDepartmentId(e.target.value)
                     }
-                    className="h-10 w-36 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="h-10 w-36 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   >
                     <option value="">All Departments</option>
 
@@ -1045,7 +1065,7 @@ export default function LeavesPage() {
                 onChange={(e) =>
                   setStatusFilter(e.target.value)
                 }
-                className="h-10 w-32 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="h-10 w-32 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               >
                 <option value="">All</option>
                 <option value="PENDING">Pending</option>
@@ -1060,10 +1080,10 @@ export default function LeavesPage() {
                 onChange={(e) =>
                   setFilterStartDate(e.target.value)
                 }
-                className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
 
-              <span className="text-sm text-gray-400">—</span>
+              <span className="text-sm text-slate-400">—</span>
 
               <input
                 type="date"
@@ -1071,13 +1091,13 @@ export default function LeavesPage() {
                 onChange={(e) =>
                   setFilterEndDate(e.target.value)
                 }
-                className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
 
               <button
                 type="button"
                 onClick={resetFilters}
-                className="flex h-10 items-center gap-2 rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+                className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
                 <RotateCcw size={15} />
                 Reset
@@ -1088,11 +1108,11 @@ export default function LeavesPage() {
           {filteredLeaves.length === 0 ? (
             <div className="flex min-h-48 items-center justify-center">
               <div className="text-center">
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium text-slate-700">
                   No leave requests found.
                 </p>
 
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-slate-500">
                   Try changing your filters.
                 </p>
               </div>
@@ -1102,40 +1122,44 @@ export default function LeavesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1150px]">
                   <thead>
-                    <tr className="border-b border-gray-100 text-left">
-                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-400">
+                    <tr className="border-b border-slate-100 text-left">
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
                         Employee
                       </th>
 
-                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-400">
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
                         Department
                       </th>
 
-                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-400">
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
                         Type
                       </th>
 
-                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-400">
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
+                        Requested At
+                      </th>
+
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
                         Start
                       </th>
 
-                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-400">
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
                         End
                       </th>
 
-                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-400">
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
                         Duration
                       </th>
 
-                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-400">
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
                         Reason
                       </th>
 
-                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-400">
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
                         Status
                       </th>
 
-                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-400">
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-400">
                         Action
                       </th>
                     </tr>
@@ -1153,47 +1177,55 @@ export default function LeavesPage() {
                         >
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-bold text-blue-300">
                                 {initials}
                               </div>
 
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-gray-900">
+                                <p className="truncate text-sm font-semibold text-slate-900">
                                   {leave.user.firstName}{" "}
                                   {leave.user.lastName}
                                 </p>
 
-                                <p className="truncate text-xs text-gray-500">
+                                <p className="truncate text-xs text-slate-500">
                                   {leave.user.email}
                                 </p>
                               </div>
                             </div>
                           </td>
 
-                          <td className="px-4 py-4 text-sm text-gray-600">
+                          <td className="px-4 py-4 text-md text-blue-600">
                             {leave.user.department}
                           </td>
 
-                          <td className="px-4 py-4 text-sm font-medium text-gray-900">
+                          <td className="px-4 py-4 text-sm font-medium  text-slate-900">
                             {leave.leaveType}
                           </td>
 
-                          <td className="px-4 py-4 text-sm text-gray-600">
+                          <td className="px-4 py-4 text-sm text-slate-600">
+                            {leave.requestedAt
+                              ? new Date(
+                                  leave.requestedAt,
+                                ).toLocaleString()
+                              : "—"}
+                          </td>
+
+                          <td className="px-4 py-4 text-sm text-slate-600">
                             {leave.startDate}
                           </td>
 
-                          <td className="px-4 py-4 text-sm text-gray-600">
+                          <td className="px-4 py-4 text-sm text-slate-600">
                             {leave.endDate}
                           </td>
 
-                          <td className="px-4 py-4 text-sm text-gray-600">
+                          <td className="px-4 py-4 text-sm text-slate-600">
                             {leave.duration}{" "}
                             {leave.duration === 1
                               ? "day"
                               : "days"}
                           </td>
 
-                          <td className="max-w-48 px-4 py-4 text-sm text-gray-600">
+                          <td className="max-w-48 px-4 py-4 text-sm text-slate-600">
                             <span className="block truncate">
                               {leave.reason || "—"}
                             </span>
@@ -1205,10 +1237,10 @@ export default function LeavesPage() {
                                 leave.status === "PENDING"
                                   ? "bg-amber-50 text-amber-600"
                                   : leave.status === "APPROVED"
-                                    ? "bg-green-50 text-green-600"
+                                    ? "bg-blue-50 text-blue-700"
                                     : leave.status === "REJECTED"
                                       ? "bg-red-50 text-red-600"
-                                      : "bg-gray-100 text-gray-600"
+                                      : "bg-slate-100 text-slate-600"
                               }`}
                             >
                               {leave.status}
@@ -1222,7 +1254,7 @@ export default function LeavesPage() {
                                 onClick={() =>
                                   openLeaveDetails(leave)
                                 }
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-600 transition hover:bg-blue-50"
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                               >
                                 <Eye size={15} />
                                 View
@@ -1234,17 +1266,22 @@ export default function LeavesPage() {
                                     type="button"
                                     disabled={isActionLoading}
                                     onClick={() => {
-                                      if (
-                                        window.confirm(
-                                          "Are you sure you want to cancel this leave request?"
-                                        )
-                                      ) {
-                                        handleCancelLeave(
-                                          leave.id
-                                        );
-                                      }
-                                    }}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                    toast("Cancel this leave request?", {
+                                      description:
+                                        "This action cannot be undone.",
+                                      duration: Infinity,
+                                      action: {
+                                        label: "Confirm",
+                                        onClick: () =>
+                                          handleCancelLeave(leave.id),
+                                      },
+                                      cancel: {
+                                        label: "Keep",
+                                        onClick: () => {},
+                                      },
+                                    });
+                                  }}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     <Trash2 size={15} />
                                     Cancel
@@ -1259,21 +1296,21 @@ export default function LeavesPage() {
                 </table>
               </div>
 
-              <div className="flex flex-col gap-3 border-t border-gray-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-gray-500">
+              <div className="flex flex-col gap-3 border-t border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-slate-500">
                   Showing{" "}
-                  <span className="font-medium text-gray-700">
+                  <span className="font-medium text-slate-700">
                     {(currentPage - 1) * ITEMS_PER_PAGE + 1}
                   </span>{" "}
                   to{" "}
-                  <span className="font-medium text-gray-700">
+                  <span className="font-medium text-slate-700">
                     {Math.min(
                       currentPage * ITEMS_PER_PAGE,
                       filteredLeaves.length
                     )}
                   </span>{" "}
                   of{" "}
-                  <span className="font-medium text-gray-700">
+                  <span className="font-medium text-slate-700">
                     {filteredLeaves.length}
                   </span>{" "}
                   requests
@@ -1288,7 +1325,7 @@ export default function LeavesPage() {
                         Math.max(1, page - 1)
                       )
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ChevronLeft size={17} />
                   </button>
@@ -1304,7 +1341,7 @@ export default function LeavesPage() {
                       className={`h-9 min-w-9 rounded-lg px-2 text-sm font-semibold transition ${
                         currentPage === page
                           ? "bg-blue-600 text-white"
-                          : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                          : "border border-slate-200 text-slate-600 hover:bg-slate-50"
                       }`}
                     >
                       {page}
@@ -1319,7 +1356,7 @@ export default function LeavesPage() {
                         Math.min(totalPages, page + 1)
                       )
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ChevronRight size={17} />
                   </button>
@@ -1330,8 +1367,8 @@ export default function LeavesPage() {
         </div>
 
         {showLeaveDetails && selectedLeave && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">
@@ -1340,11 +1377,11 @@ export default function LeavesPage() {
                   </div>
 
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">
+                    <h2 className="text-xl font-bold text-slate-900">
                       Leave Request Details
                     </h2>
 
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-slate-500">
                       {selectedLeave.user.firstName}{" "}
                       {selectedLeave.user.lastName}
                     </p>
@@ -1354,50 +1391,50 @@ export default function LeavesPage() {
                 <button
                   type="button"
                   onClick={closeLeaveDetails}
-                  className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                  className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                 >
                   <CircleX size={24} />
                 </button>
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <p className="text-xs font-medium uppercase text-gray-400">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase text-slate-400">
                     Employee
                   </p>
 
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {selectedLeave.user.firstName}{" "}
                     {selectedLeave.user.lastName}
                   </p>
 
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     {selectedLeave.user.email}
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <p className="text-xs font-medium uppercase text-gray-400">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase text-slate-400">
                     Department
                   </p>
 
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {selectedLeave.user.department}
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <p className="text-xs font-medium uppercase text-gray-400">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase text-slate-400">
                     Leave Type
                   </p>
 
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {selectedLeave.leaveType}
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <p className="text-xs font-medium uppercase text-gray-400">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase text-slate-400">
                     Status
                   </p>
 
@@ -1407,10 +1444,10 @@ export default function LeavesPage() {
                         selectedLeave.status === "PENDING"
                           ? "bg-amber-50 text-amber-600"
                           : selectedLeave.status === "APPROVED"
-                            ? "bg-green-50 text-green-600"
+                            ? "bg-blue-50 text-blue-700"
                             : selectedLeave.status === "REJECTED"
                               ? "bg-red-50 text-red-600"
-                              : "bg-gray-100 text-gray-600"
+                              : "bg-slate-100 text-slate-600"
                       }`}
                     >
                       {selectedLeave.status}
@@ -1418,32 +1455,32 @@ export default function LeavesPage() {
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <p className="text-xs font-medium uppercase text-gray-400">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase text-slate-400">
                     Start Date
                   </p>
 
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {selectedLeave.startDate}
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <p className="text-xs font-medium uppercase text-gray-400">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase text-slate-400">
                     End Date
                   </p>
 
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {selectedLeave.endDate}
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <p className="text-xs font-medium uppercase text-gray-400">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase text-slate-400">
                     Duration
                   </p>
 
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {selectedLeave.duration}{" "}
                     {selectedLeave.duration === 1
                       ? "day"
@@ -1451,12 +1488,12 @@ export default function LeavesPage() {
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <p className="text-xs font-medium uppercase text-gray-400">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase text-slate-400">
                     Requested At
                   </p>
 
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
                     {selectedLeave.requestedAt
                       ? new Date(
                           selectedLeave.requestedAt
@@ -1466,12 +1503,12 @@ export default function LeavesPage() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-xl bg-gray-50 p-4">
-                <p className="text-xs font-medium uppercase text-gray-400">
+              <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-medium uppercase text-slate-400">
                   Reason
                 </p>
 
-                <p className="mt-1 text-sm text-gray-700">
+                <p className="mt-1 text-sm text-slate-700">
                   {selectedLeave.reason ||
                     "No reason provided."}
                 </p>
@@ -1489,12 +1526,12 @@ export default function LeavesPage() {
                 </div>
               )}
 
-              <div className="mt-4 rounded-xl bg-gray-50 p-4">
-                <p className="text-xs font-medium uppercase text-gray-400">
+              <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-medium uppercase text-slate-400">
                   Supporting Document
                 </p>
 
-                <p className="mt-1 text-sm font-semibold text-gray-900">
+                <p className="mt-1 text-sm font-semibold text-slate-900">
                   {selectedLeave.documentName ||
                     "No document attached."}
                 </p>
@@ -1503,7 +1540,7 @@ export default function LeavesPage() {
               {selectedLeave.status === "PENDING" &&
                 user?.permissions.includes("LEAVE_REJECT") && (
                   <div className="mt-4">
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
                       Rejection Reason
                     </label>
 
@@ -1514,7 +1551,7 @@ export default function LeavesPage() {
                       }
                       placeholder="Enter the reason for rejection..."
                       rows={3}
-                      className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                      className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
                     />
                   </div>
                 )}
@@ -1529,16 +1566,29 @@ export default function LeavesPage() {
                 </div>
               )}
 
-              <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-5">
+              <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5">
                 {selectedLeave.status === "PENDING" &&
                   user?.permissions.includes("LEAVE_APPROVE") && (
                     <button
                       type="button"
                       disabled={isActionLoading}
-                      onClick={() =>
-                        handleApproveLeave(selectedLeave.id)
-                      }
-                      className="rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={() => {
+                        toast("Approve this leave request?", {
+                          description:
+                            "The leave will be marked as approved.",
+                          duration: Infinity,
+                          action: {
+                            label: "Approve",
+                            onClick: () =>
+                              handleApproveLeave(selectedLeave.id),
+                          },
+                          cancel: {
+                            label: "Cancel",
+                            onClick: () => {},
+                          },
+                        });
+                      }}
+                      className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isActionLoading
                         ? "Processing..."
@@ -1554,9 +1604,22 @@ export default function LeavesPage() {
                         isActionLoading ||
                         !rejectionReason.trim()
                       }
-                      onClick={() =>
-                        handleRejectLeave(selectedLeave.id)
-                      }
+                      onClick={() => {
+                        toast("Reject this leave request?", {
+                          description:
+                            "The request will be marked as rejected.",
+                          duration: Infinity,
+                          action: {
+                            label: "Reject",
+                            onClick: () =>
+                              handleRejectLeave(selectedLeave.id),
+                          },
+                          cancel: {
+                            label: "Cancel",
+                            onClick: () => {},
+                          },
+                        });
+                      }}
                       className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isActionLoading
@@ -1570,15 +1633,20 @@ export default function LeavesPage() {
                     type="button"
                     disabled={isActionLoading}
                     onClick={() => {
-                      if (
-                        window.confirm(
-                          "Are you sure you want to cancel this leave request?"
-                        )
-                      ) {
-                        handleCancelLeave(
-                          selectedLeave.id
-                        );
-                      }
+                      toast("Cancel this leave request?", {
+                        description:
+                          "This action cannot be undone.",
+                        duration: Infinity,
+                        action: {
+                          label: "Confirm",
+                          onClick: () =>
+                            handleCancelLeave(selectedLeave.id),
+                        },
+                        cancel: {
+                          label: "Keep",
+                          onClick: () => {},
+                        },
+                      });
                     }}
                     className="rounded-xl border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -1589,7 +1657,7 @@ export default function LeavesPage() {
                 <button
                   type="button"
                   onClick={closeLeaveDetails}
-                  className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Close
                 </button>
@@ -1598,6 +1666,7 @@ export default function LeavesPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

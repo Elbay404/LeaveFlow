@@ -155,10 +155,23 @@ public class LeaveService {
                 .build();
 
         Leave savedLeave = leaveRepository.save(leave);
+        String recipientEmail = null;
+
+        if ("EMPLOYEE".equals(currentUser.getRole().getName())) {
+            recipientEmail = currentUser.getManager().getEmail();
+        } else if ("MANAGER".equals(currentUser.getRole().getName())) {
+            recipientEmail = userRepository.findFirstByRole_Name("HR")
+                    .map(User::getEmail)
+                    .orElse(null);
+        } else if ("HR".equals(currentUser.getRole().getName())) {
+            recipientEmail = userRepository.findFirstByRole_Name("CEO")
+                    .map(User::getEmail)
+                    .orElse(null);
+        }
 
         emailService.sendLeaveRequestEmail(
                 currentUser.getEmail(),
-                currentUser.getManager().getEmail(),
+                recipientEmail,
                 currentUser.getFirstName() + " " + currentUser.getLastName(),
                 leaveType.getCode(),
                 request.startDate().toString(),
@@ -242,27 +255,44 @@ public class LeaveService {
             }
 
             String role = currentUser.getRole().getName();
+            String employeeRole = leave.getUser().getRole().getName();
 
-            if (role.equals("HR")) {
+            if ("MANAGER".equals(role)) {
 
-            }
-            else if (role.equals("MANAGER")) {
-
-                if (leave.getUser().getManager() == null ||
+                if (!"EMPLOYEE".equals(employeeRole) ||
+                        leave.getUser().getManager() == null ||
                         !leave.getUser()
                                 .getManager()
                                 .getId()
                                 .equals(currentUser.getId())) {
 
                     throw new AccessDeniedException(
-                            "You can only manage leaves from your team"
+                            "Managers can only manage leaves from their team"
                     );
                 }
-            }
-            else {
+
+            } else if ("HR".equals(role)) {
+
+                if (!"MANAGER".equals(employeeRole)) {
+
+                    throw new AccessDeniedException(
+                            "HR can only manage Manager leaves"
+                    );
+                }
+
+            } else if ("CEO".equals(role)) {
+
+                if (!"HR".equals(employeeRole)) {
+
+                    throw new AccessDeniedException(
+                            "CEO can only manage HR leaves"
+                    );
+                }
+
+            } else {
 
                 throw new AccessDeniedException(
-                        "Only HR or Manager can approve or reject leave"
+                        "You are not allowed to approve or reject this leave"
                 );
             }
 
@@ -330,11 +360,26 @@ public class LeaveService {
 
         Leave savedLeave = leaveRepository.save(leave);
 
+
+
         User employee = leave.getUser();
+
+        String recipientEmail = null;
+
+        if ("MANAGER".equals(employee.getRole().getName())) {
+
+            recipientEmail = userRepository.findFirstByRole_Name("HR")
+                    .map(User::getEmail)
+                    .orElse(null);
+
+        } else if (employee.getManager() != null) {
+
+            recipientEmail = employee.getManager().getEmail();
+        }
 
         emailService.sendLeaveDecisionEmail(
                 employee.getEmail(),
-                employee.getManager().getEmail(),
+                recipientEmail,
                 employee.getFirstName() + " " + employee.getLastName().toUpperCase(),
                 leave.getLeaveType().getCode(),
                 leave.getStartDate().toString(),

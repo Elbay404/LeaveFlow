@@ -2,6 +2,7 @@ package com.example.leave_management.config;
 
 import com.example.leave_management.dto.error.ErrorResponse;
 import com.example.leave_management.security.JwtAuthenticationFilter;
+import com.example.leave_management.security.RateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,8 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -60,7 +63,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/ldap/migrate/**")
                         .hasRole("HR")
-
+                        .requestMatchers("/api/roles/**").hasRole("HR")
                         .anyRequest()
                         .authenticated()
                 )
@@ -124,6 +127,11 @@ public class SecurityConfig {
                                     )
                             );
                         })
+                )
+
+                .addFilterBefore(
+                        rateLimitFilter,
+                        UsernamePasswordAuthenticationFilter.class
                 )
 
                 .addFilterBefore(

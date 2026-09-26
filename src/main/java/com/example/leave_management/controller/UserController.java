@@ -1,6 +1,7 @@
 package com.example.leave_management.controller;
 
 import com.example.leave_management.dto.user.CurrentUserResponse;
+import com.example.leave_management.dto.user.ResetPasswordRequest;
 import com.example.leave_management.dto.user.UserRequest;
 import com.example.leave_management.dto.user.UserResponse;
 import com.example.leave_management.service.UserService;
@@ -55,4 +56,18 @@ public class UserController {
     ) {
         return userService.update(id, request);
     }
+
+    @PatchMapping("/{id}/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(
+            @PathVariable Long id,
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        userService.resetPassword(
+                id,
+                request.password(),
+                request.confirmPassword()
+        );
+    }
+
 }

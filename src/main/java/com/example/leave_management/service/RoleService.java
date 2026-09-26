@@ -6,17 +6,18 @@ import com.example.leave_management.dto.role.RoleResponse;
 import com.example.leave_management.entity.Permission;
 import com.example.leave_management.entity.Role;
 import com.example.leave_management.entity.RolePermission;
+import com.example.leave_management.entity.User;
 import com.example.leave_management.exception.DuplicateResourceException;
 import com.example.leave_management.exception.ResourceNotFoundException;
 import com.example.leave_management.repository.PermissionRepository;
 import com.example.leave_management.repository.RolePermissionRepository;
 import com.example.leave_management.repository.RoleRepository;
-import com.example.leave_management.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -26,11 +27,10 @@ import java.util.List;
 public class RoleService {
 
     private final RoleRepository roleRepository;
-
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
 
-
+    @Transactional
     public RoleResponse create(RoleRequest request) {
 
         checkHr();
@@ -48,7 +48,7 @@ public class RoleService {
 
         if (request.permissionIds() != null) {
 
-            for (Long permissionId : new HashSet<>(request.permissionIds())) { //rm duplicate permissionids
+            for (Long permissionId : new HashSet<>(request.permissionIds())) {
 
                 Permission permission = permissionRepository.findById(permissionId)
                         .orElseThrow(() ->
@@ -69,6 +69,7 @@ public class RoleService {
     }
 
     public List<RoleResponse> findAll() {
+
         checkHr();
 
         return roleRepository.findAll()
@@ -88,6 +89,7 @@ public class RoleService {
         return toResponse(role);
     }
 
+    @Transactional
     public RoleResponse update(Long id, RoleRequest request) {
 
         checkHr();
@@ -109,7 +111,6 @@ public class RoleService {
 
         rolePermissionRepository.deleteAll(oldPermissions);
 
-        // Add new permissions
         if (request.permissionIds() != null) {
 
             for (Long permissionId : new HashSet<>(request.permissionIds())) {
@@ -134,6 +135,66 @@ public class RoleService {
         return toResponse(updatedRole);
     }
 
+    public List<PermissionResponse> getPermissions(Long roleId) {
+
+        checkHr();
+
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Role not found"));
+
+        return rolePermissionRepository.findByRole(role)
+                .stream()
+                .map(rolePermission -> {
+                    Permission permission = rolePermission.getPermission();
+
+                    return new PermissionResponse(
+                            permission.getId(),
+                            permission.getName(),
+                            permission.getDescription(),
+                            permission.getModule().getId(),
+                            permission.getModule().getName()
+                    );
+                })
+                .toList();
+    }
+
+    @Transactional
+    public List<PermissionResponse> updatePermissions(
+            Long roleId,
+            List<Long> permissionIds
+    ) {
+
+        checkHr();
+
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Role not found"));
+
+        rolePermissionRepository.deleteByRoleId(roleId);
+        rolePermissionRepository.flush();
+
+        if (permissionIds != null) {
+
+            for (Long permissionId : new HashSet<>(permissionIds)) {
+
+                Permission permission = permissionRepository.findById(permissionId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Permission not found: " + permissionId
+                                ));
+
+                RolePermission rolePermission = RolePermission.builder()
+                        .role(role)
+                        .permission(permission)
+                        .build();
+
+                rolePermissionRepository.save(rolePermission);
+            }
+        }
+
+        return getPermissions(roleId);
+    }
 
     private RoleResponse toResponse(Role role) {
 
@@ -160,7 +221,6 @@ public class RoleService {
                 permissions
         );
     }
-
 
     private void checkHr() {
 

@@ -1026,3 +1026,93 @@ databaseChangeLog:
               - column:
                   name: birth_date
                   type: date
+
+  - changeSet:
+      id: add-holiday-module-and-permissions
+      author: bayrem
+      changes:
+
+        - insert:
+            tableName: modules
+            columns:
+              - column:
+                  name: name
+                  value: HOLIDAY_MANAGEMENT
+              - column:
+                  name: description
+                  value: Public holiday management
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: HOLIDAY_READ
+              - column:
+                  name: description
+                  value: View public holidays
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'HOLIDAY_MANAGEMENT')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: HOLIDAY_CREATE
+              - column:
+                  name: description
+                  value: Create public holidays
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'HOLIDAY_MANAGEMENT')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: HOLIDAY_UPDATE
+              - column:
+                  name: description
+                  value: Update public holidays
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'HOLIDAY_MANAGEMENT')"
+  - changeSet:
+      id: add-holiday-delete-permission
+      author: bayrem
+      changes:
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: HOLIDAY_DELETE
+              - column:
+                  name: description
+                  value: Delete public holidays
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'HOLIDAY_MANAGEMENT')"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

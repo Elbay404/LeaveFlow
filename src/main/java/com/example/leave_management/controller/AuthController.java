@@ -2,6 +2,7 @@ package com.example.leave_management.controller;
 
 import com.example.leave_management.dto.auth.LoginRequest;
 import com.example.leave_management.dto.auth.LoginResponse;
+import com.example.leave_management.dto.auth.LoginResult;
 import com.example.leave_management.dto.auth.MeResponse;
 import com.example.leave_management.dto.ldap.ChangePasswordRequest;
 import com.example.leave_management.dto.ldap.ResetPasswordRequest;
@@ -24,16 +25,16 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public String login(
+    public LoginResponse login(
             @Valid @RequestBody LoginRequest request,
-            HttpServletResponse response ) {
+            HttpServletResponse response) {
 
-        String token = authService.login(
+        LoginResult result = authService.login(
                 request.email(),
                 request.password()
         );
 
-        ResponseCookie cookie = ResponseCookie.from("jwt", token)
+        ResponseCookie cookie = ResponseCookie.from("jwt", result.token())
                 .httpOnly(true)
                 .secure(false)
                 .path("/")
@@ -43,9 +44,31 @@ public class AuthController {
 
         response.addHeader("Set-Cookie", cookie.toString());
 
-        return "Login successful";
+        return new LoginResponse(
+                "Login successful",
+                result.mustChangePassword()
+        );
     }
 
+    @PostMapping("/logout")
+    public String logout(
+            @AuthenticationPrincipal User user,
+            HttpServletResponse response) {
+
+        authService.logout(user);
+
+        ResponseCookie cookie = ResponseCookie.from("jwt", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
+
+        return "Logout successful";
+    }
 
     @GetMapping("/me")
     public MeResponse me(@AuthenticationPrincipal User user) {

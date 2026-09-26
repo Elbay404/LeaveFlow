@@ -11,6 +11,7 @@ import com.example.leave_management.repository.DepartmentRepository;
 import com.example.leave_management.repository.RoleRepository;
 import com.example.leave_management.repository.UserRepository;
 import com.example.leave_management.security.AuthorizationService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.access.AccessDeniedException;
@@ -128,6 +129,7 @@ public class UserService {
                 .department(department)
                 .manager(manager)
                 .active(true)
+                .tokenVersion(0)
                 .mustChangePassword(true)
                 .hireDate(LocalDate.now())
                 .annualLeaveBalance(0)
@@ -421,6 +423,65 @@ public class UserService {
                 user.getHireDate(),
                 user.getAnnualLeaveBalance()
         );
+    }
+
+    @Transactional
+    public void resetPassword(
+            Long id,
+            String password,
+            String confirmPassword
+    ) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser =
+                (User) authentication.getPrincipal();
+
+        if (!authorizationService.hasPermission(
+                currentUser, "USER_UPDATE")) {
+
+            throw new AccessDeniedException(
+                    "You do not have permission to reset user passwords"
+            );
+        }
+
+        if (!password.equals(confirmPassword)) {
+            throw new IllegalArgumentException(
+                    "Passwords do not match"
+            );
+        }
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User not found"
+                        )
+                );
+
+        if (user.getLdapUid() == null ||
+                user.getLdapUid().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "User does not have an LDAP account"
+            );
+        }
+
+        ldapService.changePassword(
+                user.getLdapUid(),
+                password
+        );
+
+        user.setPassword(
+                passwordEncoder.encode(password)
+        );
+
+        user.setMustChangePassword(false);
+
+        user.setTokenVersion(
+                user.getTokenVersion() + 1
+        );
+
+        userRepository.save(user);
     }
 
 

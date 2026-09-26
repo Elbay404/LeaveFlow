@@ -16,6 +16,7 @@ import {
   Clock3,
   Gift,
   GlobeOff,
+  RotateCcw,
   Search,
 } from "lucide-react";
 
@@ -203,22 +204,28 @@ export default function AvailabilityPage() {
   const filteredUsers = selectedDepartmentName
     ? users.filter((user) => user.departmentName === selectedDepartmentName)
     : users;
+const resetFilters = () => {
+  setSearch("");
+  setSelectedDepartment("");
+  setSelectedUser("");
+  setWeekOffset(0);
+};
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 lg:p-8">
       <div className="mx-auto  max-w-[1500px]">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between overflow-hidden rounded-3xl bg-slate-950 px-6 py-5 shadow-lg sm:px-7">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-blue-300 ring-1 ring-white/10">
               <CalendarDays size={28} />
             </div>
 
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              <h1 className="text-3xl font-bold tracking-tight text-white">
                 Availability
               </h1>
 
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-400">
                 View employee availability, leaves and public holidays.
               </p>
             </div>
@@ -260,7 +267,10 @@ export default function AvailabilityPage() {
 
             <select
               value={selectedUser}
-              onChange={(event) => setSelectedUser(event.target.value)}
+              onChange={(event) => {
+  setSelectedUser(event.target.value);
+  setSearch("");
+}}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-blue-500"
             >
               <option value="" disabled={selectedDepartment === ""}>
@@ -273,6 +283,13 @@ export default function AvailabilityPage() {
                 </option>
               ))}
             </select>
+        <button
+  onClick={resetFilters}
+  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+>
+  <RotateCcw size={16} />
+  Reset
+</button>
           </div>
 
           <div className="flex  items-center gap-3">
@@ -450,13 +467,14 @@ export default function AvailabilityPage() {
               <button
                 disabled={data.number === 0}
                 onClick={() => {
-                  getAvailability(
-                    selectedDepartment ? Number(selectedDepartment) : undefined,
-                    selectedUser ? Number(selectedUser) : undefined,
-                    data.number - 1,
-                    10,
-                    startDate,
-                  ).then(setData);
+                 getAvailability(
+  selectedDepartment ? Number(selectedDepartment) : undefined,
+  selectedUser ? Number(selectedUser) : undefined,
+  data.number - 1,
+  10,
+  startDate,
+  search.trim() || undefined,
+).then(setData);
                 }}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -471,12 +489,13 @@ export default function AvailabilityPage() {
                 disabled={data.number >= data.totalPages - 1}
                 onClick={() => {
                   getAvailability(
-                    selectedDepartment ? Number(selectedDepartment) : undefined,
-                    selectedUser ? Number(selectedUser) : undefined,
-                    data.number + 1,
-                    10,
-                    startDate,
-                  ).then(setData);
+  selectedDepartment ? Number(selectedDepartment) : undefined,
+  selectedUser ? Number(selectedUser) : undefined,
+  data.number + 1,
+  10,
+  startDate,
+  search.trim() || undefined,
+).then(setData);
                 }}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
               >

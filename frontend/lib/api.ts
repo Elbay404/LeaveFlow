@@ -1,5 +1,7 @@
 const API_URL = "http://localhost:8080";
 
+
+
 export async function getCurrentUser() {
   const response = await fetch(`${API_URL}/api/auth/me`, {
     method: "GET",
@@ -82,9 +84,14 @@ export async function getAvailability(
   return response.json();
 }
 
-export async function getDepartments() {
+export async function getDepartments(page = 0, size = 10) {
+  const params = new URLSearchParams();
+
+  params.append("page", page.toString());
+  params.append("size", size.toString());
+
   const response = await fetch(
-    `${API_URL}/api/departments?page=0&size=100`,
+    `${API_URL}/api/departments?${params.toString()}`,
     {
       method: "GET",
       credentials: "include",
@@ -92,15 +99,21 @@ export async function getDepartments() {
   );
 
   if (!response.ok) {
-    throw new Error("Failed to get departments");
+    const message = await response.text();
+    throw new Error(message || "Failed to get departments");
   }
 
   return response.json();
 }
 
-export async function getUsers() {
+export async function getUsers(page = 0, size = 10) {
+  const params = new URLSearchParams();
+
+  params.append("page", page.toString());
+  params.append("size", size.toString());
+
   const response = await fetch(
-    `${API_URL}/api/users?page=0&size=100`,
+    `${API_URL}/api/users?${params.toString()}`,
     {
       method: "GET",
       credentials: "include",
@@ -108,7 +121,8 @@ export async function getUsers() {
   );
 
   if (!response.ok) {
-    throw new Error("Failed to get users");
+    const message = await response.text();
+    throw new Error(message || "Failed to get users");
   }
 
   return response.json();
@@ -249,6 +263,272 @@ export async function updateLeaveStatus(
   if (!response.ok) {
     const message = await response.text();
     throw new Error(message || "Failed to update leave status");
+  }
+
+  return response.json();
+}
+
+export async function createUser(data: {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  roleId: number;
+  departmentId: number | null;
+  hireDate: string;
+  birthDate: string | null;
+  active: boolean;
+}) {
+  const response = await fetch(`${API_URL}/api/users`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to create user");
+  }
+
+  return response.json();
+}
+
+export async function updateUser(
+  userId: number,
+  data: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    roleId: number;
+    departmentId: number | null;
+    hireDate: string;
+    birthDate: string | null;
+    active: boolean;
+  },
+) {
+  const response = await fetch(
+    `${API_URL}/api/users/${userId}`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    },
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to update user");
+  }
+
+  return response.json();
+}
+
+export async function getRoles() {
+  const response = await fetch(`${API_URL}/api/roles`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to get roles");
+  }
+
+  return response.json();
+}
+
+export async function createRole(data: {
+  name: string;
+  description: string;
+}) {
+  const response = await fetch(`${API_URL}/api/roles`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to create role");
+  }
+
+  return response.json();
+}
+
+export async function updateRole(
+  roleId: number,
+  data: {
+    name: string;
+    description: string;
+  },
+) {
+  const response = await fetch(
+    `${API_URL}/api/roles/${roleId}`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    },
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to update role");
+  }
+
+  return response.json();
+}
+
+export async function getModules() {
+  const response = await fetch(`${API_URL}/api/modules`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to get modules");
+  }
+
+  return response.json();
+}
+
+export async function getPermissions() {
+  const response = await fetch(`${API_URL}/api/permissions`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to get permissions");
+  }
+
+  return response.json();
+}
+
+export async function getRolePermissions(roleId: number) {
+  const response = await fetch(
+    `${API_URL}/api/roles/${roleId}/permissions`,
+    {
+      method: "GET",
+      credentials: "include",
+    },
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to get role permissions");
+  }
+
+  return response.json();
+}
+
+export async function updateRolePermissions(
+  roleId: number,
+  permissionIds: number[],
+) {
+  const response = await fetch(
+    `${API_URL}/api/roles/${roleId}/permissions`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        permissionIds,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to update role permissions");
+  }
+
+  return response.json();
+}
+
+export async function resetUserPassword(
+  userId: number,
+  data: {
+    password: string;
+    confirmPassword: string;
+  }
+) {
+  const response = await fetch(
+    `${API_URL}/api/users/${userId}/reset-password`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to reset password");
+  }
+}
+
+
+export async function createDepartment(data: {
+  name: string;
+  description: string;
+}) {
+  const response = await fetch(`${API_URL}/api/departments`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to create department");
+  }
+
+  return response.json();
+}
+
+export async function updateDepartment(
+  departmentId: number,
+  data: {
+    name: string;
+    description: string;
+  }
+) {
+  const response = await fetch(
+    `${API_URL}/api/departments/${departmentId}`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to update department");
   }
 
   return response.json();

@@ -1,5 +1,7 @@
 package com.example.leave_management.controller;
 
+import com.example.leave_management.dto.permission.PermissionResponse;
+import com.example.leave_management.dto.role.RolePermissionsRequest;
 import com.example.leave_management.dto.role.RoleRequest;
 import com.example.leave_management.dto.role.RoleResponse;
 import com.example.leave_management.service.RoleService;
@@ -43,5 +45,21 @@ public class RoleController {
         return roleService.update(id, request);
     }
 
+    @GetMapping("/{id}/permissions")
+    public List<PermissionResponse> getPermissions(
+            @PathVariable Long id
+    ) {
+        return roleService.getPermissions(id);
+    }
 
+    @PutMapping("/{id}/permissions")
+    public List<PermissionResponse> updatePermissions(
+            @PathVariable Long id,
+            @Valid @RequestBody RolePermissionsRequest request
+    ) {
+        return roleService.updatePermissions(
+                id,
+                request.permissionIds()
+        );
+    }
 }
