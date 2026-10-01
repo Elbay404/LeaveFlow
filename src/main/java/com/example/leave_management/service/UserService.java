@@ -1,5 +1,6 @@
 package com.example.leave_management.service;
 
+import com.example.leave_management.dto.user.UserImportResponse;
 import com.example.leave_management.dto.user.UserRequest;
 import com.example.leave_management.dto.user.UserResponse;
 import com.example.leave_management.entity.Department;
@@ -25,7 +26,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.text.Normalizer;
 import java.time.LocalDate;
+import com.example.leave_management.dto.user.UserImportError;
+import com.example.leave_management.dto.user.UserImportResponse;
+import org.apache.poi.ss.usermodel.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +51,7 @@ public class UserService {
     private final EmailService emailService;
     private final LdapService ldapService;
 
-
+    @Transactional
     public UserResponse create(UserRequest request) {
 
         Authentication authentication =
@@ -116,6 +127,13 @@ public class UserService {
                             new ResourceNotFoundException(
                                     "No manager found for this department"));
         }
+        LocalDate hireDate = request.hireDate();
+
+        if (hireDate == null) {
+            throw new IllegalArgumentException("Hire date is required");
+        }
+
+        boolean active = !hireDate.isAfter(LocalDate.now());
 
         User user = User.builder()
                 .firstName(request.firstName())
@@ -128,10 +146,10 @@ public class UserService {
                 .role(role)
                 .department(department)
                 .manager(manager)
-                .active(true)
+                .active(active)
                 .tokenVersion(0)
                 .mustChangePassword(true)
-                .hireDate(LocalDate.now())
+                .hireDate(hireDate)
                 .annualLeaveBalance(0)
                 .build();
 
@@ -149,7 +167,7 @@ public class UserService {
     }
 
 
-    public Page<UserResponse> findAll(Pageable pageable) {
+    public Page<UserResponse> findAll(String search, Pageable pageable) {
 
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
@@ -163,10 +181,19 @@ public class UserService {
                     "You do not have permission to view users");
         }
 
-        return userRepository.findAll(pageable)
-                .map(this::toResponse);
-    }
+        Page<User> users;
 
+        if (search == null || search.trim().isEmpty()) {
+            users = userRepository.findAll(pageable);
+        } else {
+            users = userRepository.searchUsers(
+                    search.trim(),
+                    pageable
+            );
+        }
+
+        return users.map(this::toResponse);
+    }
 
     public UserResponse findById(Long id) {
 
@@ -292,8 +319,19 @@ public class UserService {
             user.setPhone(request.phone());
         }
         if (request.hireDate() != null) {
-            user.setHireDate(request.hireDate());
+
+            LocalDate newHireDate = request.hireDate();
+
+            user.setHireDate(newHireDate);
+
+            if (newHireDate.isAfter(LocalDate.now())) {
+                user.setActive(false);
+                user.setTokenVersion(user.getTokenVersion() + 1);
+            } else {
+                user.setActive(true);
+            }
         }
+
         if (request.birthDate() != null) {
             user.setBirthDate(request.birthDate());
         }
@@ -350,7 +388,7 @@ public class UserService {
     }
 
 
-    private String generateUniqueEmail(String firstName, String lastName) {
+    /*private String generateUniqueEmail(String firstName, String lastName) {
 
         String cleanFirstName = cleanName(firstName);
 
@@ -374,6 +412,37 @@ public class UserService {
                     + "@company.bm";
 
             counter++;
+        }
+
+        return email;
+    }*/
+
+    private String generateUniqueEmail(String firstName, String lastName) {
+
+        String cleanFirstName = cleanName(firstName);
+        String cleanLastName = cleanName(lastName);
+
+        String email =
+                cleanFirstName + "." + cleanLastName + "@company.bm";
+
+        if (!userRepository.existsByEmail(email)) {
+            return email;
+        }
+
+        String lastLetter =
+                cleanLastName.substring(cleanLastName.length() - 1);
+
+        String repeatedLastName = cleanLastName;
+
+        while (userRepository.existsByEmail(email)) {
+
+            repeatedLastName += lastLetter;
+
+            email =
+                    cleanFirstName
+                            + "."
+                            + repeatedLastName
+                            + "@company.bm";
         }
 
         return email;
@@ -482,6 +551,251 @@ public class UserService {
         );
 
         userRepository.save(user);
+    }
+
+
+    public UserImportResponse importUsers(MultipartFile file) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = (User) authentication.getPrincipal();
+
+        if (!authorizationService.hasPermission(
+                currentUser, "USER_CREATE")) {
+
+            throw new AccessDeniedException(
+                    "Only HR can import users");
+        }
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Excel file is required");
+        }
+
+        String filename = file.getOriginalFilename();
+
+        if (filename == null ||
+                (!filename.toLowerCase().endsWith(".xlsx")
+                        && !filename.toLowerCase().endsWith(".xls"))) {
+
+            throw new IllegalArgumentException(
+                    "Only Excel files are supported");
+        }
+
+        List<UserImportError> errors = new ArrayList<>();
+        int totalRows = 0;
+        int successCount = 0;
+
+        try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
+//try to closes the workbook
+            Sheet sheet = workbook.getSheetAt(0);//get first sheet
+
+            if (sheet.getPhysicalNumberOfRows() <= 1) {
+                throw new IllegalArgumentException(
+                        "The Excel file contains no users");
+            }
+
+            Row header = sheet.getRow(0);
+
+            validateHeaders(header);
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+
+                Row row = sheet.getRow(i);
+
+                if (row == null || isEmptyRow(row)) {
+                    continue;
+                }
+
+                totalRows++;
+
+                int excelRow = i + 1;
+
+                try {
+
+                    String firstName = getCellValue(row.getCell(0));
+                    String lastName = getCellValue(row.getCell(1));
+                    String phone = getCellValue(row.getCell(2));
+                    String roleName = getCellValue(row.getCell(3));
+                    String departmentName = getCellValue(row.getCell(4));
+                    String hireDateValue = getCellValue(row.getCell(5));
+                    String birthDateValue = getCellValue(row.getCell(6));
+
+                    if (firstName.isBlank()) {
+                        throw new IllegalArgumentException(
+                                "First Name is required");
+                    }
+
+                    if (lastName.isBlank()) {
+                        throw new IllegalArgumentException(
+                                "Last Name is required");
+                    }
+
+                    if (!phone.matches("\\d{8}")) { // \\d : digit
+                        throw new IllegalArgumentException(
+                                "Phone must contain exactly 8 digits");
+                    }
+
+                    if (roleName.isBlank()) {
+                        throw new IllegalArgumentException(
+                                "Role is required");
+                    }
+
+                    if (departmentName.isBlank()) {
+                        throw new IllegalArgumentException(
+                                "Department is required");
+                    }
+
+                    if (hireDateValue.isBlank()) {
+                        throw new IllegalArgumentException(
+                                "Hire Date is required");
+                    }
+
+                    if (birthDateValue.isBlank()) {
+                        throw new IllegalArgumentException(
+                                "Birth Date is required");
+                    }
+
+                    Role role = roleRepository
+                            .findByNameIgnoreCase(roleName)
+                            .orElseThrow(() ->
+                                    new ResourceNotFoundException(
+                                            "Role not found: " + roleName));
+
+                    Department department = departmentRepository
+                            .findByNameIgnoreCase(departmentName)
+                            .orElseThrow(() ->
+                                    new ResourceNotFoundException(
+                                            "Department not found: "
+                                                    + departmentName));
+
+                    LocalDate hireDate =
+                            parseExcelDate(hireDateValue);
+
+                    LocalDate birthDate =
+                            parseExcelDate(birthDateValue);
+
+
+
+                    if (birthDate.isAfter(LocalDate.now())) {
+                        throw new IllegalArgumentException(
+                                "Birth Date cannot be in the future");
+                    }
+
+                    UserRequest request = new UserRequest(
+                            firstName,
+                            lastName,
+                            phone,
+                            role.getId(),
+                            department.getId(),
+                            hireDate,
+                            birthDate,
+                            true
+                    );
+
+                    create(request);
+
+                    successCount++;
+
+                } catch (Exception e) {
+
+                    errors.add(
+                            new UserImportError(
+                                    excelRow,
+                                    e.getMessage() != null
+                                            ? e.getMessage()
+                                            : "Unable to import user"
+                            )
+                    );
+                }
+            }
+
+        } catch (IOException e) {
+
+            throw new IllegalArgumentException(
+                    "Unable to read the Excel file");
+        }
+
+        return new UserImportResponse(
+                totalRows,
+                successCount,
+                errors.size(),
+                errors
+        );
+    }
+
+    private void validateHeaders(Row header) {
+
+        if (header == null) {
+            throw new IllegalArgumentException(
+                    "Excel header row is missing");
+        }
+
+        String[] expectedHeaders = {
+                "First Name",
+                "Last Name",
+                "Phone",
+                "Role",
+                "Department",
+                "Hire Date",
+                "Birth Date"
+        };
+
+        for (int i = 0; i < expectedHeaders.length; i++) {
+
+            String actual =
+                    getCellValue(header.getCell(i));
+
+            if (!expectedHeaders[i]
+                    .equalsIgnoreCase(actual.trim())) {
+
+                throw new IllegalArgumentException(
+                        "Invalid Excel header at column "
+                                + (i + 1)
+                                + ". Expected: "
+                                + expectedHeaders[i]);
+            }
+        }
+    }
+    private String getCellValue(Cell cell) {
+
+        if (cell == null) {
+            return "";
+        }
+
+        DataFormatter formatter = new DataFormatter();
+
+        return formatter
+                .formatCellValue(cell)
+                .trim();
+    }
+
+    private boolean isEmptyRow(Row row) {
+
+        for (int i = 0; i < 7; i++) {
+
+            if (!getCellValue(row.getCell(i)).isBlank()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    private LocalDate parseExcelDate(String value) {
+
+        try {
+
+            return LocalDate.parse(
+                    value,
+                    DateTimeFormatter.ISO_LOCAL_DATE
+            );
+
+        } catch (DateTimeParseException e) {
+
+            throw new IllegalArgumentException(
+                    "Date must use YYYY-MM-DD format");
+        }
     }
 
 

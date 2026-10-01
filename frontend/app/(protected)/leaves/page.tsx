@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  Download,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -27,6 +28,7 @@ import {
   getAllLeaves,
   getTeamLeaves,
   updateLeaveStatus,
+  getLeaveDocumentUrl,
 } from "@/lib/api";
 
 type Leave = {
@@ -1526,16 +1528,44 @@ export default function LeavesPage() {
                 </div>
               )}
 
-              <div className="mt-4 rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase text-slate-400">
-                  Supporting Document
-                </p>
+             <div className="mt-4 rounded-xl bg-slate-50 p-4">
+  <p className="text-xs font-medium uppercase text-slate-400">
+    Supporting Document
+  </p>
 
-                <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {selectedLeave.documentName ||
-                    "No document attached."}
-                </p>
-              </div>
+  {selectedLeave.documentName ? (
+    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-slate-900">
+          {selectedLeave.documentName}
+        </p>
+      </div>
+
+      <div className="flex shrink-0 gap-2">
+        <button
+          type="button"
+          onClick={() =>
+            window.open(
+              getLeaveDocumentUrl(selectedLeave.id),
+              "_blank",
+              "noopener,noreferrer"
+            )
+          }
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+        >
+          <Eye size={15} />
+          View
+        </button>
+
+        
+      </div>
+    </div>
+  ) : (
+    <p className="mt-1 text-sm font-semibold text-slate-900">
+      No document attached.
+    </p>
+  )}
+</div>
 
               {selectedLeave.status === "PENDING" &&
                 user?.permissions.includes("LEAVE_REJECT") && (

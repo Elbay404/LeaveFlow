@@ -7,6 +7,7 @@ import com.example.leave_management.entity.Leave;
 import com.example.leave_management.entity.LeaveType;
 import com.example.leave_management.entity.User;
 import com.example.leave_management.enums.LeaveStatus;
+import com.example.leave_management.enums.NotificationType;
 import com.example.leave_management.repository.LeaveRepository;
 import com.example.leave_management.repository.LeaveTypeRepository;
 import com.example.leave_management.repository.UserRepository;
@@ -18,6 +19,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import java.time.LocalDateTime;
@@ -41,6 +48,7 @@ public class LeaveService {
     private final LeaveDurationService leaveDurationService;
 
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     private final Path uploadDirectory =
             Paths.get("uploads/leaves");
@@ -124,8 +132,12 @@ public class LeaveService {
         }
 
         if (leaveRepository
-                .existsByUserAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                .existsByUserAndStatusInAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                         currentUser,
+                        List.of(
+                                LeaveStatus.PENDING,
+                                LeaveStatus.APPROVED
+                        ),
                         request.endDate(),
                         request.startDate()
                 )) {
@@ -155,18 +167,35 @@ public class LeaveService {
                 .build();
 
         Leave savedLeave = leaveRepository.save(leave);
-        String recipientEmail = null;
+
+        User recipient = null;
 
         if ("EMPLOYEE".equals(currentUser.getRole().getName())) {
-            recipientEmail = currentUser.getManager().getEmail();
+            recipient = currentUser.getManager();
         } else if ("MANAGER".equals(currentUser.getRole().getName())) {
-            recipientEmail = userRepository.findFirstByRole_Name("HR")
-                    .map(User::getEmail)
+            recipient = userRepository.findFirstByRole_Name("HR")
                     .orElse(null);
         } else if ("HR".equals(currentUser.getRole().getName())) {
-            recipientEmail = userRepository.findFirstByRole_Name("CEO")
-                    .map(User::getEmail)
+            recipient = userRepository.findFirstByRole_Name("CEO")
                     .orElse(null);
+        }
+
+        String recipientEmail =
+                recipient != null ? recipient.getEmail() : null;
+
+        //
+
+        if (recipient != null) {
+            notificationService.create(
+                    recipient,
+                    NotificationType.LEAVE_SUBMITTED,
+                    "New Leave Request",
+                    currentUser.getFirstName() + " " +
+                            currentUser.getLastName() +
+                            " submitted a leave request.",
+                    "LEAVE",
+                    savedLeave.getId()
+            );
         }
 
         emailService.sendLeaveRequestEmail(
@@ -360,6 +389,78 @@ public class LeaveService {
 
         Leave savedLeave = leaveRepository.save(leave);
 
+        //
+
+        if (status == LeaveStatus.APPROVED ||
+                status == LeaveStatus.REJECTED) {
+
+            String title = status == LeaveStatus.APPROVED
+                    ? "Leave Approved"
+                    : "Leave Rejected";
+
+            String message;
+
+            if (status == LeaveStatus.APPROVED) {
+                message = "Your leave request from "
+                        + leave.getStartDate()
+                        + " to "
+                        + leave.getEndDate()
+                        + " has been approved.";
+            } else {
+                message = "Your leave request from "
+                        + leave.getStartDate()
+                        + " to "
+                        + leave.getEndDate()
+                        + " has been rejected.";
+
+                if (leave.getRejectionReason() != null) {
+                    message += " Reason: " + leave.getRejectionReason();
+                }
+            }
+
+            notificationService.create(
+                    leave.getUser(),
+                    status == LeaveStatus.APPROVED
+                            ? NotificationType.LEAVE_APPROVED
+                            : NotificationType.LEAVE_REJECTED,
+                    title,
+                    message,
+                    "LEAVE",
+                    savedLeave.getId()
+            );
+        }
+
+        if (status == LeaveStatus.CANCELLED) {
+
+            User recipient = null;
+
+            if ("EMPLOYEE".equals(leave.getUser().getRole().getName())) {
+                recipient = leave.getUser().getManager();
+            } else if ("MANAGER".equals(leave.getUser().getRole().getName())) {
+                recipient = userRepository.findFirstByRole_Name("HR").orElse(null);
+            } else if ("HR".equals(leave.getUser().getRole().getName())) {
+                recipient = userRepository.findFirstByRole_Name("CEO").orElse(null);
+            }
+
+            if (recipient != null) {
+                notificationService.create(
+                        recipient,
+                        NotificationType.LEAVE_CANCELLED,
+                        "Leave Cancelled",
+                        leave.getUser().getFirstName()
+                                + " "
+                                + leave.getUser().getLastName()
+                                + " cancelled their leave request from "
+                                + leave.getStartDate()
+                                + " to "
+                                + leave.getEndDate()
+                                + ".",
+                        "LEAVE",
+                        savedLeave.getId()
+                );
+            }
+        }
+
 
 
         User employee = leave.getUser();
@@ -376,6 +477,9 @@ public class LeaveService {
 
             recipientEmail = employee.getManager().getEmail();
         }
+
+
+
 
         emailService.sendLeaveDecisionEmail(
                 employee.getEmail(),
@@ -394,6 +498,7 @@ public class LeaveService {
 
         return toResponse(savedLeave);
     }
+
 
     public List<LeaveResponse> findMyLeaves() {
 
@@ -588,4 +693,106 @@ public class LeaveService {
                 .map(this::toResponse)
                 .toList();
     }
+
+    public ResponseEntity<Resource> getDocument(Long leaveId) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser =
+                (User) authentication.getPrincipal();
+
+        Leave leave = leaveRepository.findById(leaveId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "Leave not found"
+                        )
+                );
+
+        boolean canReadOwn =
+                authorizationService.hasPermission(
+                        currentUser,
+                        "LEAVE_READ_OWN"
+                );
+
+        boolean canReadTeam =
+                authorizationService.hasPermission(
+                        currentUser,
+                        "LEAVE_READ_TEAM"
+                );
+
+        boolean canReadAll =
+                authorizationService.hasPermission(
+                        currentUser,
+                        "LEAVE_READ_ALL"
+                );
+
+        boolean allowed = false;
+
+        if (canReadAll) {
+            allowed = true;
+        }
+
+        if (canReadOwn &&
+                leave.getUser().getId()
+                        .equals(currentUser.getId())) {
+            allowed = true;
+        }
+
+        if (canReadTeam &&
+                leave.getUser().getManager() != null &&
+                leave.getUser().getManager().getId()
+                        .equals(currentUser.getId())) {
+            allowed = true;
+        }
+
+        if (!allowed) {
+            throw new AccessDeniedException(
+                    "You do not have permission to view this document"
+            );
+        }
+
+        if (leave.getDocumentPath() == null ||
+                leave.getDocumentName() == null) {
+            throw new EntityNotFoundException(
+                    "No document attached to this leave"
+            );
+        }
+
+        Path path = Paths.get(leave.getDocumentPath());
+
+        Resource resource =
+                new FileSystemResource(path);
+
+        if (!resource.exists() || !resource.isReadable()) {
+            throw new EntityNotFoundException(
+                    "Document not found"
+            );
+        }
+
+        String contentType;
+
+        try {
+            contentType = Files.probeContentType(path);// application/pdf
+        } catch (IOException exception) {
+            contentType = null;
+        }
+
+        if (contentType == null) {
+            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
+
+        return ResponseEntity.ok()
+                .contentType(
+                        MediaType.parseMediaType(contentType)
+                )
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" +
+                                leave.getDocumentName() +
+                                "\""
+                )
+                .body(resource);
+    }
+
 }

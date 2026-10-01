@@ -4,11 +4,13 @@ import com.example.leave_management.exception.EmailSendingException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 import java.io.File;
 
@@ -17,6 +19,7 @@ import java.io.File;
 public class EmailService {
 
     private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
 
     public void sendAccountCredentials(
             String recipientEmail,
@@ -25,30 +28,25 @@ public class EmailService {
             String role,
             String department) {
 
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
+        Context context = new Context();
 
-            message.setTo(recipientEmail);
-            message.setSubject("Your account has been created");
-            message.setText(
-                    "Hello " + firstName + ",\n\n" +
-                            "Your account has been created successfully.\n\n" +
-                            "Email: " + recipientEmail + "\n" +
-                            "Temporary password: " + temporaryPassword + "\n\n" +
-                            "Role: " + role + "\n" +
-                            "Department: " + department + "\n\n" +
-                            "Please change your password after your first login.\n\n" +
-                            "Regards,\n" +
-                            "HR Department"
-            );
+        context.setVariable("firstName", firstName);
+        context.setVariable("recipientEmail", recipientEmail);
+        context.setVariable("temporaryPassword", temporaryPassword);
+        context.setVariable("role", role);
+        context.setVariable("department", department);
 
-            mailSender.send(message);
+        String html = templateEngine.process(
+                "email/account-created",
+                context
+        );
 
-        } catch (Exception exception) {
-            throw new EmailSendingException(
-                    "Failed to send account email"
-            );
-        }
+        sendHtmlEmail(
+                recipientEmail,
+                "Your LeaveFlow account has been created",
+                html,
+                null
+        );
     }
 
     public void sendPasswordResetEmail(
@@ -56,30 +54,52 @@ public class EmailService {
             String firstName,
             String temporaryPassword) {
 
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
+        Context context = new Context();
 
-            message.setTo(recipientEmail);
-            message.setSubject("Your password has been reset");
-            message.setText(
-                    "Hello " + firstName + ",\n\n" +
-                            "Your password has been reset by the HR department.\n\n" +
-                            "Email: " + recipientEmail + "\n" +
-                            "Temporary password: " + temporaryPassword + "\n\n" +
-                            "Please change your password after logging in.\n\n" +
-                            "Regards,\n" +
-                            "HR Department"
-            );
+        context.setVariable("firstName", firstName);
+        context.setVariable("recipientEmail", recipientEmail);
+        context.setVariable("temporaryPassword", temporaryPassword);
 
-            mailSender.send(message);
+        String html = templateEngine.process(
+                "email/password-reset",
+                context
+        );
 
-        } catch (Exception exception) {
-            throw new EmailSendingException(
-                    "Failed to send password reset email"
-            );
-        }
+        sendHtmlEmail(
+                recipientEmail,
+                "Your LeaveFlow password has been reset",
+                html,
+                null
+        );
     }
 
+    public void sendPasswordResetLink(
+            String recipientEmail,
+            String firstName,
+            String resetToken) {
+
+        Context context = new Context();
+
+        context.setVariable("firstName", firstName);
+
+        String resetUrl =
+                "http://localhost:3000/reset-password?token="
+                        + resetToken;
+
+        context.setVariable("resetUrl", resetUrl);
+
+        String html = templateEngine.process(
+                "email/password-reset-link",
+                context
+        );
+
+        sendHtmlEmail(
+                recipientEmail,
+                "Reset your LeaveFlow password",
+                html,
+                null
+        );
+    }
 
     public void sendLeaveRequestEmail(
             String employeeEmail,
@@ -91,36 +111,27 @@ public class EmailService {
             int duration,
             String documentPath
     ) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
 
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(message, true); //supprt attachments
+        Context context = new Context();
 
-            helper.setTo(employeeEmail);
+        context.setVariable("employeeName", employeeName);
+        context.setVariable("leaveType", leaveType);
+        context.setVariable("startDate", startDate);
+        context.setVariable("endDate", endDate);
+        context.setVariable("duration", duration);
 
-            if (managerEmail != null && !managerEmail.isBlank()) {
-                helper.setCc(managerEmail);
-            }
-            helper.setSubject("Leave Request Submitted");
+        String html = templateEngine.process(
+                "email/leave-submitted",
+                context
+        );
 
-            helper.setText(
-                    "Leave request submitted\n\n" +
-                            "Employee: " + employeeName + "\n" +
-                            "Leave type: " + leaveType + "\n" +
-                            "Start date: " + startDate + "\n" +
-                            "End date: " + endDate + "\n" +
-                            "Duration: " + duration + " working days\n" +
-                            "Status: PENDING"
-            );
-
-            addAttachment(helper, documentPath);
-
-            mailSender.send(message);
-
-        } catch (MessagingException exception) {
-            throw new IllegalArgumentException("Failed to send leave request email");
-        }
+        sendHtmlEmail(
+                employeeEmail,
+                "Leave Request Submitted",
+                html,
+                managerEmail,
+                documentPath
+        );
     }
 
     public void sendLeaveDecisionEmail(
@@ -136,43 +147,100 @@ public class EmailService {
             String actionBy,
             String documentPath
     ) {
+
+        Context context = new Context();
+
+        context.setVariable("employeeName", employeeName);
+        context.setVariable("leaveType", leaveType);
+        context.setVariable("startDate", startDate);
+        context.setVariable("endDate", endDate);
+        context.setVariable("duration", duration);
+        context.setVariable("status", status);
+        context.setVariable("rejectionReason", rejectionReason);
+        context.setVariable("actionBy", actionBy);
+
+        String html = templateEngine.process(
+                "email/leave-decision",
+                context
+        );
+
+        sendHtmlEmail(
+                employeeEmail,
+                "Leave Request " + status,
+                html,
+                managerEmail,
+                documentPath
+        );
+    }
+
+    private void sendHtmlEmail(
+            String recipientEmail,
+            String subject,
+            String html,
+            String ccEmail
+    ) {
+
+        sendHtmlEmail(
+                recipientEmail,
+                subject,
+                html,
+                ccEmail,
+                null
+        );
+    }
+
+    private void sendHtmlEmail(
+            String recipientEmail,
+            String subject,
+            String html,
+            String ccEmail,
+            String documentPath
+    ) {
+
         try {
-            MimeMessage message = mailSender.createMimeMessage();
+
+            MimeMessage message =
+                    mailSender.createMimeMessage();
 
             MimeMessageHelper helper =
-                    new MimeMessageHelper(message, true);
+                    new MimeMessageHelper(
+                            message,
+                            true,
+                            "UTF-8"
+                    );
 
-            helper.setTo(employeeEmail);
+            helper.setTo(recipientEmail);
 
-            if (managerEmail != null && !managerEmail.isBlank()) {
-                helper.setCc(managerEmail);
-            }
-            helper.setSubject("Leave Request " + status);
-
-            String text =
-                    "Leave request " + status.toLowerCase() + "\n\n" +
-                            "Employee: " + employeeName + "\n" +
-                            "Leave type: " + leaveType + "\n" +
-                            "Start date: " + startDate + "\n" +
-                            "End date: " + endDate + "\n" +
-                            "Duration: " + duration + " working days\n" +
-                            "Status: " + status + "\n" +
-                            "Action by: " + actionBy;
-
-            if (rejectionReason != null &&
-                    !rejectionReason.isBlank()) {
-                text += "\nRejection reason: " + rejectionReason;
+            if (ccEmail != null && !ccEmail.isBlank()) {
+                helper.setCc(ccEmail);
             }
 
-            helper.setText(text);
+            helper.setSubject(subject);
+            helper.setText(html, true);
 
-            addAttachment(helper, documentPath);
+            ClassPathResource logo =
+                    new ClassPathResource(
+                            "static/images/leaveflow-logo.png"
+                    );
+
+            helper.addInline(
+                    "logo",
+                    logo
+            );
+
+            addAttachment(
+                    helper,
+                    documentPath
+            );
 
             mailSender.send(message);
 
-        } catch (MessagingException exception) {
-            throw new IllegalArgumentException(
-                    "Failed to send leave decision email"
+        } catch (Exception exception) {
+            System.err.println("EMAIL ERROR:");
+            exception.printStackTrace();
+
+            throw new EmailSendingException(
+                    "Failed to send email: " + exception.getMessage()
             );
         }
     }
@@ -182,51 +250,23 @@ public class EmailService {
             String documentPath
     ) throws MessagingException {
 
-        if (documentPath == null) {
+        if (documentPath == null ||
+                documentPath.isBlank()) {
             return;
         }
 
         File file = new File(documentPath);
 
-        if (file.exists()) {
-            FileSystemResource resource =
-                    new FileSystemResource(file);
-
-            helper.addAttachment(
-                    file.getName(),
-                    resource
-            );
+        if (!file.exists()) {
+            return;
         }
+
+        FileSystemResource resource =
+                new FileSystemResource(file);
+
+        helper.addAttachment(
+                file.getName(),
+                resource
+        );
     }
-
-    public void sendPasswordResetLink(
-            String recipientEmail,
-            String firstName,
-            String resetToken) {
-
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-
-            message.setTo(recipientEmail);
-            message.setSubject("Password reset request");
-            message.setText(
-                    "Hello " + firstName + ",\n\n" +
-                            "We received a request to reset your password.\n\n" +
-                            "Use the following link to reset your password:\n" +
-                            "http://localhost:3000/reset-password?token=" + resetToken+ "\n\n" +
-                            "This link will expire in 15 minutes.\n\n" +
-                            "If you did not request this reset, you can ignore this email.\n\n" +
-                            "Regards,\n" +
-                            "HR Department"
-            );
-
-            mailSender.send(message);
-
-        } catch (Exception exception) {
-            throw new EmailSendingException(
-                    "Failed to send password reset email"
-            );
-        }
-    }
-
 }

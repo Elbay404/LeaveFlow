@@ -1098,12 +1098,146 @@ databaseChangeLog:
                   valueComputed: "(SELECT id FROM modules WHERE name = 'HOLIDAY_MANAGEMENT')"
 
 
+  - changeSet:
+      id: add-leave-type-module-and-permissions
+      author: bayrem
+      changes:
+
+        - insert:
+            tableName: modules
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_TYPE_MANAGEMENT
+              - column:
+                  name: description
+                  value: Leave type management
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_TYPE_READ
+              - column:
+                  name: description
+                  value: View leave types
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE_TYPE_MANAGEMENT')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_TYPE_CREATE
+              - column:
+                  name: description
+                  value: Create leave types
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE_TYPE_MANAGEMENT')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_TYPE_UPDATE
+              - column:
+                  name: description
+                  value: Update leave types
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE_TYPE_MANAGEMENT')"
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: LEAVE_TYPE_DELETE
+              - column:
+                  name: description
+                  value: Delete leave types
+              - column:
+                  name: module_id
+                  valueComputed: "(SELECT id FROM modules WHERE name = 'LEAVE_TYPE_MANAGEMENT')"
 
 
+  - changeSet:
+      id: create-notifications-table
+      author: bayrem
+      changes:
 
+        - createTable:
+            tableName: notifications
+            columns:
 
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
 
+              - column:
+                  name: recipient_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
 
+              - column:
+                  name: type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: message
+                  type: VARCHAR(1000)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: entity_type
+                  type: VARCHAR(50)
+
+              - column:
+                  name: entity_id
+                  type: BIGINT
+
+              - column:
+                  name: is_read
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: read_at
+                  type: TIMESTAMP
+
+        - addForeignKeyConstraint:
+            baseTableName: notifications
+            baseColumnNames: recipient_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_notifications_recipient
 
 
 

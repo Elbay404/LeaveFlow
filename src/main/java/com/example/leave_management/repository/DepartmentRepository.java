@@ -10,4 +10,8 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     Optional<Department> findByName(String name);
 
     boolean existsByName(String name);
+
+    //for excel
+    Optional<Department> findByNameIgnoreCase(String name);
+
 }

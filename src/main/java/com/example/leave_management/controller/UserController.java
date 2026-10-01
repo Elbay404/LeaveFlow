@@ -1,18 +1,17 @@
 package com.example.leave_management.controller;
 
-import com.example.leave_management.dto.user.CurrentUserResponse;
-import com.example.leave_management.dto.user.ResetPasswordRequest;
-import com.example.leave_management.dto.user.UserRequest;
-import com.example.leave_management.dto.user.UserResponse;
+import com.example.leave_management.dto.user.*;
 import com.example.leave_management.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @RestController
@@ -32,9 +31,10 @@ public class UserController {
 
     @GetMapping
     public Page<UserResponse> findAll(
-            @PageableDefault(size = 10) Pageable pageable) {
-
-        return userService.findAll(pageable);
+            @RequestParam(required = false, defaultValue = "") String search,
+            @PageableDefault(size = 8) Pageable pageable
+    ) {
+        return userService.findAll(search, pageable);
     }
 
     @GetMapping("/me")
@@ -68,6 +68,12 @@ public class UserController {
                 request.password(),
                 request.confirmPassword()
         );
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public UserImportResponse importUsers(
+            @RequestParam("file") MultipartFile file) {
+        return userService.importUsers(file);
     }
 
 }

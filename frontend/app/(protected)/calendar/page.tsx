@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react"; //useMemo for optimizing the calculation
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -48,8 +48,6 @@ type Leave = {
   };
 };
 
-
-
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -66,22 +64,29 @@ export default function CalendarPage() {
       setError("");
 
       try {
-        const [leavesResponse, holidaysResponse, usersResponse] =
-          await Promise.all([getAllLeaves(), getHolidays(), getUsers()]);// Fetch all data concurrently
+        const [
+          leavesResponse,
+          holidaysResponse,
+          usersResponse,
+        ] = await Promise.all([
+          getAllLeaves(),
+          getHolidays(),
+          getUsers(),
+        ]);
 
         const leaveData: Leave[] = Array.isArray(leavesResponse)
-  ? leavesResponse
-  : "content" in leavesResponse
-    ? leavesResponse.content
-    : [];
+          ? leavesResponse
+          : "content" in leavesResponse
+            ? leavesResponse.content
+            : [];
 
         const holidayData: Holiday[] = Array.isArray(holidaysResponse)
           ? holidaysResponse
-          : (holidaysResponse.content ?? []);
+          : holidaysResponse.content ?? [];
 
         const userData: User[] = Array.isArray(usersResponse)
           ? usersResponse
-          : (usersResponse.content ?? []);
+          : usersResponse.content ?? [];
 
         setLeaves(leaveData);
         setHolidays(holidayData);
@@ -132,13 +137,21 @@ export default function CalendarPage() {
 
   const goToPreviousMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
+      new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - 1,
+        1,
+      ),
     );
   };
 
   const goToNextMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
+      new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        1,
+      ),
     );
   };
 
@@ -157,15 +170,18 @@ export default function CalendarPage() {
   };
 
   const formatDateKey = (date: Date) => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-      2,
-      "0",
-    )}-${String(date.getDate()).padStart(2, "0")}`;
+    return `${date.getFullYear()}-${String(
+      date.getMonth() + 1,
+    ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   };
 
   const getEventsForDay = (day: number): CalendarEvent[] => {
     const date = formatDateKey(
-      new Date(currentDate.getFullYear(), currentDate.getMonth(), day),
+      new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        day,
+      ),
     );
 
     const dayEvents: CalendarEvent[] = [];
@@ -186,13 +202,19 @@ export default function CalendarPage() {
         return;
       }
 
-      const [, birthMonth, birthDay] = user.birthDate.split("-");
+      const [, birthMonth, birthDay] =
+        user.birthDate.split("-");
 
-      const currentMonth = String(currentDate.getMonth() + 1).padStart(2, "0");
+      const currentMonth = String(
+        currentDate.getMonth() + 1,
+      ).padStart(2, "0");
 
       const currentDay = String(day).padStart(2, "0");
 
-      if (birthMonth === currentMonth && birthDay === currentDay) {
+      if (
+        birthMonth === currentMonth &&
+        birthDay === currentDay
+      ) {
         dayEvents.push({
           id: `birthday-${user.id}`,
           title: "Birthday",
@@ -204,40 +226,50 @@ export default function CalendarPage() {
     });
 
     leaves.forEach((leave) => {
-      if (leave.status !== "APPROVED" && leave.status !== "PENDING") {
+      if (
+        leave.status !== "APPROVED" &&
+        leave.status !== "PENDING"
+      ) {
         return;
       }
 
-     if (date >= leave.startDate && date <= leave.endDate) {
-  const calendarDate = new Date(
-    currentDate.getFullYear(),
-    currentDate.getMonth(),
-    day,
-  );
+      if (
+        date >= leave.startDate &&
+        date <= leave.endDate
+      ) {
+        const calendarDate = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          day,
+        );
 
-  const dayOfWeek = calendarDate.getDay();
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  const isPublicHoliday = holidays.some(
-    (holiday) => holiday.date === date,
-  );
+        const dayOfWeek = calendarDate.getDay();
 
-  if (isWeekend || isPublicHoliday) {
-    return;
-  }
+        const isWeekend =
+          dayOfWeek === 0 || dayOfWeek === 6;
 
-  dayEvents.push({
-    id: `leave-${leave.id}-${date}`,
-    title:
-      leave.leaveType?.name ??
-      (leave.status === "PENDING" ? "Leave Pending" : "Leave"),
-    date,
-    type: "leave",
-    employee: leave.user
-      ? `${leave.user.firstName} ${leave.user.lastName}`
-      : undefined,
-  });
-}
-        
+        const isPublicHoliday = holidays.some(
+          (holiday) => holiday.date === date,
+        );
+
+        if (isWeekend || isPublicHoliday) {
+          return;
+        }
+
+        dayEvents.push({
+          id: `leave-${leave.id}-${date}`,
+          title:
+            leave.leaveType?.name ??
+            (leave.status === "PENDING"
+              ? "Leave Pending"
+              : "Leave"),
+          date,
+          type: "leave",
+          employee: leave.user
+            ? `${leave.user.firstName} ${leave.user.lastName}`
+            : undefined,
+        });
+      }
     });
 
     return dayEvents;
@@ -248,15 +280,20 @@ export default function CalendarPage() {
   ).padStart(2, "0")}`;
 
   const leaveEventsCount = leaves.filter((leave) => {
-    if (leave.status !== "APPROVED" && leave.status !== "PENDING") {
+    if (
+      leave.status !== "APPROVED" &&
+      leave.status !== "PENDING"
+    ) {
       return false;
     }
 
     return (
       leave.startDate.startsWith(currentMonthPrefix) ||
       leave.endDate.startsWith(currentMonthPrefix) ||
-      (leave.startDate < `${currentMonthPrefix}-01` &&
-        leave.endDate >= `${currentMonthPrefix}-01`)
+      (leave.startDate <
+        `${currentMonthPrefix}-01` &&
+        leave.endDate >=
+          `${currentMonthPrefix}-01`)
     );
   }).length;
 
@@ -271,10 +308,15 @@ export default function CalendarPage() {
 
     const [, month] = user.birthDate.split("-");
 
-    return month === String(currentDate.getMonth() + 1).padStart(2, "0");
+    return (
+      month ===
+      String(currentDate.getMonth() + 1).padStart(2, "0")
+    );
   }).length;
 
-  const getEventStyle = (type: CalendarEvent["type"]) => {
+  const getEventStyle = (
+    type: CalendarEvent["type"],
+  ) => {
     if (type === "leave") {
       return "border-red-100 bg-red-50 text-red-600";
     }
@@ -283,10 +325,12 @@ export default function CalendarPage() {
       return "border-blue-100 bg-blue-50 text-blue-600";
     }
 
-    return "border-pink-100 bg-pink-50 text-pink-600";
+    return "border-violet-100 bg-violet-50 text-violet-600";
   };
 
-  const getEventIcon = (type: CalendarEvent["type"]) => {
+  const getEventIcon = (
+    type: CalendarEvent["type"],
+  ) => {
     if (type === "leave") {
       return <GlobeOff size={12} />;
     }
@@ -299,11 +343,14 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 lg:p-8">
+    <div className="min-h-screen bg-[#f6f8fb] p-6 lg:p-8">
       <div className="mx-auto max-w-[1500px]">
+
         <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
+
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
               <CalendarDays size={28} />
             </div>
 
@@ -316,20 +363,24 @@ export default function CalendarPage() {
                 View leaves, holidays and important employee events.
               </p>
             </div>
+
           </div>
 
           <Link
             href="/leaves"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700"
           >
             <Plus size={17} />
             Request Leave
           </Link>
+
         </div>
 
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center gap-3">
+
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
                 <GlobeOff size={19} />
               </div>
@@ -343,11 +394,13 @@ export default function CalendarPage() {
                   {leaveEventsCount}
                 </p>
               </div>
+
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center gap-3">
+
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                 <CalendarDays size={19} />
               </div>
@@ -361,24 +414,30 @@ export default function CalendarPage() {
                   {holidayCount}
                 </p>
               </div>
+
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-50 text-pink-600">
+
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
                 <Gift size={19} />
               </div>
 
               <div>
-                <p className="text-xs font-medium text-slate-400">Birthdays</p>
+                <p className="text-xs font-medium text-slate-400">
+                  Birthdays
+                </p>
 
                 <p className="mt-1 text-xl font-bold text-slate-900">
                   {birthdayCount}
                 </p>
               </div>
+
             </div>
           </div>
+
         </div>
 
         {error && (
@@ -388,59 +447,74 @@ export default function CalendarPage() {
         )}
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
           <div className="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
-  <div>
-    <h2 className="text-lg font-bold text-slate-900">{monthName}</h2>
-    <p className="mt-1 text-xs text-slate-400">
-      Monthly employee calendar
-    </p>
-  </div>
 
-  <div className="flex flex-wrap items-center justify-center gap-2">
-    <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-      <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-      Leave
-    </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600">
+                Schedule
+              </p>
 
-    <div className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">
-      <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-      Public Holiday
-    </div>
+              <h2 className="mt-1 text-lg font-bold text-slate-900">
+                {monthName}
+              </h2>
 
-    <div className="flex items-center gap-2 rounded-full bg-pink-50 px-3 py-2 text-xs font-medium text-pink-700">
-      <span className="h-2.5 w-2.5 rounded-full bg-pink-500" />
-      Birthday
-    </div>
-  </div>
+              <p className="mt-1 text-xs text-slate-400">
+                Monthly employee calendar
+              </p>
+            </div>
 
-  <div className="flex items-center gap-2">
-    <button
-      type="button"
-      onClick={goToPreviousMonth}
-      className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-    >
-      <ChevronLeft size={18} />
-    </button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
 
-    <button
-      type="button"
-      onClick={goToToday}
-      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-    >
-      Today
-    </button>
+              <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                Leave
+              </div>
 
-    <button
-      type="button"
-      onClick={goToNextMonth}
-      className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-    >
-      <ChevronRight size={18} />
-    </button>
-  </div>
-</div>
+              <div className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">
+                <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                Public Holiday
+              </div>
+
+              <div className="flex items-center gap-2 rounded-full bg-violet-50 px-3 py-2 text-xs font-medium text-violet-700">
+                <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+                Birthday
+              </div>
+
+            </div>
+
+            <div className="flex items-center gap-2">
+
+              <button
+                type="button"
+                onClick={goToPreviousMonth}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+              >
+                <ChevronLeft size={18} />
+              </button>
+
+              <button
+                type="button"
+                onClick={goToToday}
+                className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+              >
+                Today
+              </button>
+
+              <button
+                type="button"
+                onClick={goToNextMonth}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+              >
+                <ChevronRight size={18} />
+              </button>
+
+            </div>
+
+          </div>
 
           <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+
             {[
               "Monday",
               "Tuesday",
@@ -459,72 +533,122 @@ export default function CalendarPage() {
                 </span>
               </div>
             ))}
+
           </div>
 
           {loading ? (
             <div className="flex min-h-[500px] items-center justify-center">
+
               <div className="text-center">
+
                 <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
 
                 <p className="text-sm font-medium text-slate-500">
                   Loading calendar...
                 </p>
+
               </div>
+
             </div>
           ) : (
             <div className="grid grid-cols-7">
+
               {calendarDays.map((day, index) => {
-                const dayEvents = day ? getEventsForDay(day) : [];
+
+                const dayEvents = day
+                  ? getEventsForDay(day)
+                  : [];
 
                 return (
                   <div
                     key={`${day}-${index}`}
                     className={`min-h-[145px] border-b border-r border-slate-100 p-2.5 transition ${
-                      day ? "bg-white hover:bg-slate-50/70" : "bg-slate-50/50"
+                      day
+                        ? "bg-white hover:bg-blue-50/30"
+                        : "bg-slate-50/50"
                     }`}
                   >
+
                     {day && (
                       <>
+
                         <div className="mb-2 flex justify-end">
+
                           <span
                             className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
                               isToday(day)
-                                ? "bg-blue-600 text-white shadow-sm"
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-600/20 ring-4 ring-blue-50"
                                 : "text-slate-600"
                             }`}
                           >
                             {day}
                           </span>
+
                         </div>
 
                         <div className="space-y-1.5">
-                          {dayEvents.map((event) => (
-                            <div
-                              key={event.id}
-                              className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold ${getEventStyle(
-                                event.type,
-                              )}`}
-                            >
-                              {getEventIcon(event.type)}
 
-                              <span className="truncate">
-                                {event.employee
-                                  ? `${event.employee} · ${event.title}`
-                                  : event.title}
-                              </span>
-                            </div>
+                          {dayEvents.map((event) => (
+
+                           <div
+  key={event.id}
+  className="group relative"
+>
+  <div
+    className={`flex cursor-default items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition hover:-translate-y-0.5 ${getEventStyle(
+      event.type,
+    )}`}
+  >
+    {getEventIcon(event.type)}
+
+    <span className="truncate">
+      {event.employee
+        ? `${event.employee} · ${event.title}`
+        : event.title}
+    </span>
+  </div>
+
+  <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden w-max max-w-[280px] -translate-x-1/2 rounded-lg bg-slate-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block">
+    <p className="font-semibold">
+      {event.employee
+        ? event.employee
+        : event.title}
+    </p>
+
+    {event.employee && (
+      <p className="mt-0.5 text-slate-300">
+        {event.title}
+      </p>
+    )}
+
+    <p className="mt-1 text-[10px] text-slate-400">
+      {event.type === "leave"
+        ? "Leave"
+        : event.type === "holiday"
+          ? "Public Holiday"
+          : "Birthday"}
+    </p>
+
+    <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+  </div>
+</div>
+
                           ))}
+
                         </div>
+
                       </>
                     )}
+
                   </div>
                 );
               })}
+
             </div>
           )}
+
         </div>
 
-       
       </div>
     </div>
   );

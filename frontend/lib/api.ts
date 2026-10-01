@@ -1,6 +1,16 @@
 const API_URL = "http://localhost:8080";
 
+import axios from "axios";
 
+const api = axios.create({
+  baseURL: "http://localhost:8080/api",
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export default api;
 
 export async function getCurrentUser() {
   const response = await fetch(`${API_URL}/api/auth/me`, {
@@ -106,23 +116,29 @@ export async function getDepartments(page = 0, size = 10) {
   return response.json();
 }
 
-export async function getUsers(page = 0, size = 10) {
-  const params = new URLSearchParams();
+export async function getUsers(
+  page = 0,
+  size = 8,
+  search = ""
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
 
-  params.append("page", page.toString());
-  params.append("size", size.toString());
+  if (search.trim()) {
+    params.set("search", search.trim());
+  }
 
   const response = await fetch(
-    `${API_URL}/api/users?${params.toString()}`,
+    `http://localhost:8080/api/users?${params.toString()}`,
     {
-      method: "GET",
       credentials: "include",
     }
   );
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Failed to get users");
+    throw new Error("Failed to fetch users");
   }
 
   return response.json();
@@ -130,18 +146,40 @@ export async function getUsers(page = 0, size = 10) {
 
 
 export async function getLeaveTypes() {
-  const response = await fetch(`${API_URL}/api/leave-types`, {
-    method: "GET",
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to get leave types");
-  }
-
-  return response.json();
+  const response = await api.get("/leave-types");
+  return response.data;
 }
 
+export async function createLeaveType(data: {
+  code: string;
+  name: string;
+  description: string;
+  consumesBalance: boolean;
+  requiresDocument: boolean;
+  maxDays: number;
+}) {
+  const response = await api.post("/leave-types", data);
+  return response.data;
+}
+
+export async function updateLeaveType(
+  id: number,
+  data: {
+    code: string;
+    name: string;
+    description: string;
+    consumesBalance: boolean;
+    requiresDocument: boolean;
+    maxDays: number;
+  }
+) {
+  const response = await api.put(`/leave-types/${id}`, data);
+  return response.data;
+}
+
+export async function deleteLeaveType(id: number) {
+  await api.delete(`/leave-types/${id}`);
+}
 
 export async function createLeave(
   leaveTypeId: number,
@@ -532,4 +570,55 @@ export async function updateDepartment(
   }
 
   return response.json();
+}
+
+export async function getWeather(
+  latitude: number,
+  longitude: number,
+  location = "Current"
+) {
+  const response = await fetch(
+    `http://localhost:8080/api/weather?latitude=${latitude}&longitude=${longitude}&location=${encodeURIComponent(location)}`,
+    {
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Weather request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+//
+
+export async function importUsers(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("http://localhost:8080/api/users/import", {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to import users.");
+  }
+
+  return data;
+}
+
+//
+export async function getMyLeaveBalance() {
+  const response = await api.get("/leaves/my-balance");
+  return response.data;
+}
+
+//
+export function getLeaveDocumentUrl(id: number) {
+  return `http://localhost:8080/api/leaves/${id}/document`;
 }

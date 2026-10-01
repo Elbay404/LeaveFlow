@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+
+
 import { getCurrentUser } from "@/lib/api";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
 import Footer from "./Footer";
+
 
 type User = {
   firstName?: string;
@@ -39,35 +42,37 @@ export default function AppShell({
   }, []);
   
 
-  return (
-    <div className="min-h-screen bg-[#f6f8fb]">
-      <Sidebar
-        permissions={user?.permissions ?? []}
-        collapsed={collapsed}
-        mobileOpen={mobileOpen}
-        onToggle={() => setCollapsed((value) => !value)}
-        onCloseMobile={() => setMobileOpen(false)}
+ return (
+  <div className="min-h-screen bg-[#f6f8fb]">
+   
+
+    <Sidebar
+      permissions={user?.permissions ?? []}
+      collapsed={collapsed}
+      mobileOpen={mobileOpen}
+      onToggle={() => setCollapsed((value) => !value)}
+      onCloseMobile={() => setMobileOpen(false)}
+    />
+
+    <div
+      className={`
+        min-h-screen transition-all duration-300
+        ${collapsed ? "lg:pl-[84px]" : "lg:pl-[270px]"}
+      `}
+    >
+      <TopNav
+        firstName={user?.firstName}
+        lastName={user?.lastName}
+        role={user?.role}
+        onMenuClick={() => setMobileOpen(true)}
       />
 
-      <div
-        className={`
-          min-h-screen transition-all duration-300
-          ${collapsed ? "lg:pl-[84px]" : "lg:pl-[270px]"}
-        `}
-      >
-        <TopNav
-          firstName={user?.firstName}
-          lastName={user?.lastName}
-          role={user?.role}
-          onMenuClick={() => setMobileOpen(true)}
-        />
+      <div className="flex min-h-[calc(100vh-76px)] flex-col">
+        <main className="flex-1">{children}</main>
 
-        <div className="flex min-h-[calc(100vh-76px)] flex-col">
-          <main className="flex-1">{children}</main>
-
-          <Footer />
-        </div>
+        <Footer />
       </div>
     </div>
-  );
+  </div>
+);
 }

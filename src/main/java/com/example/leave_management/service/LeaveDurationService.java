@@ -38,4 +38,22 @@ public class LeaveDurationService {
 
         return workingDays;
     }
+
+
+    public boolean isWorkingDay(LocalDate date) {
+
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+
+        boolean weekend =
+                dayOfWeek == DayOfWeek.SATURDAY ||
+                        dayOfWeek == DayOfWeek.SUNDAY;
+
+        boolean holiday =
+                holidayRepository.existsByDate(date);
+
+        return !weekend && !holiday;
+    }
+
+
+
 }

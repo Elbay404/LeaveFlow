@@ -1,11 +1,15 @@
 package com.example.leave_management.controller;
 
+import com.example.leave_management.dto.leave.LeaveBalanceResponse;
 import com.example.leave_management.dto.leave.LeaveRequest;
 import com.example.leave_management.dto.leave.LeaveResponse;
 import com.example.leave_management.enums.LeaveStatus;
+import com.example.leave_management.service.LeaveBalanceService;
 import com.example.leave_management.service.LeaveService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +22,8 @@ import java.util.List;
 public class LeaveController {
 
     private final LeaveService leaveService;
+    private final LeaveBalanceService leaveBalanceService;
+
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public LeaveResponse create(
@@ -72,4 +78,18 @@ public class LeaveController {
     ) {
         return leaveService.findByDepartmentId(departmentId);
     }
+
+
+    @GetMapping("/my-balance")
+    public LeaveBalanceResponse getMyBalance(){
+    return leaveBalanceService.getMyBalance();
+    }
+
+    @GetMapping("/{leaveId}/document")
+    public ResponseEntity<Resource> getDocument(
+            @PathVariable Long leaveId
+    ) {
+        return leaveService.getDocument(leaveId);
+    }
+
 }

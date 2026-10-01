@@ -3,15 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Balloon,
   BarChart3,
   Building2,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  FileText,
   LayoutDashboard,
   LogOut,
+  NotebookDot,
   ShieldCheck,
   Users,
+  WalletCards,
   X,
 } from "lucide-react";
 
@@ -59,13 +63,18 @@ const navigationGroups = [
       {
         label: "Leaves",
         href: "/leaves",
-        icon: CalendarDays,
+        icon: NotebookDot,
         permission: "LEAVE_READ_OWN",
       },
       {
+  label: "Calendar",
+  href: "/calendar",
+  icon: CalendarDays,
+},
+      {
         label: "Holidays",
         href: "/holidays",
-        icon: CalendarDays,
+        icon: Balloon,
         permission: "HOLIDAY_READ",
       },
       {
@@ -73,6 +82,17 @@ const navigationGroups = [
         href: "/availability",
         icon: BarChart3,
       },
+      {
+        label: "Leave Types",
+        href: "/leave-types",
+        icon: FileText,
+        permission: "LEAVE_TYPE_READ",
+      },
+      {
+  label: "My Leave Balance",
+  href: "/my-leave-balance",
+  icon: WalletCards,
+},
     ],
   },
   {
@@ -208,11 +228,7 @@ export default function Sidebar({
                         className={`
                           group relative flex h-14 items-center rounded-2xl
                           text-[15px] font-medium transition-all duration-200
-                          ${
-                            collapsed
-                              ? "justify-center px-0"
-                              : "gap-4 px-4"
-                          }
+                          ${collapsed ? "justify-center px-0" : "gap-4 px-4"}
                           ${
                             active
                               ? "bg-gradient-to-r from-blue-500/[0.18] to-blue-500/[0.06] text-white shadow-inner"
@@ -264,8 +280,6 @@ export default function Sidebar({
 
             {!collapsed && <span>Logout</span>}
           </button>
-
-        
 
           <button
             onClick={onToggle}

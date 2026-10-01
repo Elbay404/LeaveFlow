@@ -15,6 +15,7 @@ import {
   EyeOff,
   ChevronLeft,
   ChevronRight,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import {
@@ -25,6 +26,7 @@ import {
   updateUser,
   getRoles,
   resetUserPassword,
+  importUsers,
 } from "@/lib/api";
 
 type CurrentUser = {
@@ -127,6 +129,58 @@ export default function UsersPage() {
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
   const [resetPasswordError, setResetPasswordError] = useState("");
 
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    totalRows: number;
+    successCount: number;
+    failedCount: number;
+    errors: {
+      row: number;
+      message: string;
+    }[];
+  } | null>(null);
+
+  const handleImportUsers = async () => {
+    if (!importFile) {
+      toast.error("Please select an Excel file.");
+      return;
+    }
+
+    const extension = importFile.name.toLowerCase();
+
+    if (!extension.endsWith(".xlsx") && !extension.endsWith(".xls")) {
+      toast.error("Only .xlsx and .xls files are supported.");
+      return;
+    }
+
+    try {
+      setImporting(true);
+      setImportResult(null);
+
+      const result = await importUsers(importFile);
+
+      setImportResult(result);
+
+      if (result.failedCount === 0) {
+        toast.success(`${result.successCount} users imported successfully.`);
+      } else {
+        toast.warning(
+          `${result.successCount} users imported, ${result.failedCount} failed.`,
+        );
+      }
+
+      await loadUsers();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to import users.",
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const hasPermission = (permission: string) =>
     currentUser?.permissions?.includes(permission) ?? false;
 
@@ -138,7 +192,7 @@ export default function UsersPage() {
     setError("");
 
     try {
-      const usersResponse = await getUsers(page, ITEMS_PER_PAGE);
+     const usersResponse = await getUsers(page,ITEMS_PER_PAGE,search);
       const userData: User[] = Array.isArray(usersResponse)
         ? usersResponse
         : "content" in usersResponse
@@ -213,7 +267,7 @@ export default function UsersPage() {
   useEffect(() => {
     if (!currentUser) return;
     loadUsers(currentPage);
-  }, [currentUser, currentPage]);
+  }, [currentUser, currentPage,search]);
 
   useEffect(() => {
     if (!currentUser || isPrivilegedViewer) return;
@@ -265,12 +319,12 @@ export default function UsersPage() {
           (statusFilter === "INACTIVE" && !user.active);
 
         const matchesSearch =
-  !value ||
-  String(user.id).includes(value) ||
-  `${user.firstName} ${user.lastName}`.toLowerCase().includes(value) ||
-  user.email.toLowerCase().includes(value) ||
-  user.roleName.toLowerCase().includes(value) ||
-  (user.departmentName ?? "").toLowerCase().includes(value);
+          !value ||
+          String(user.id).includes(value) ||
+          `${user.firstName} ${user.lastName}`.toLowerCase().includes(value) ||
+          user.email.toLowerCase().includes(value) ||
+          user.roleName.toLowerCase().includes(value) ||
+          (user.departmentName ?? "").toLowerCase().includes(value);
 
         const matchesDepartment =
           !departmentFilter || user.departmentName === departmentFilter;
@@ -353,11 +407,7 @@ export default function UsersPage() {
     if (!form.hireDate) errors.push("Hire date is required.");
     if (!form.birthDate) errors.push("Birth date is required.");
 
-    if (form.hireDate) {
-      const hireDate = new Date(form.hireDate);
-      if (hireDate > new Date())
-        errors.push("Hire date cannot be in the future.");
-    }
+    
 
     if (form.birthDate) {
       const birthDate = new Date(form.birthDate);
@@ -395,13 +445,7 @@ export default function UsersPage() {
       errors.push("Department cannot be empty.");
     if (hireDateChanged && !form.hireDate)
       errors.push("Hire date cannot be empty.");
-    if (
-      form.hireDate &&
-      hireDateChanged &&
-      new Date(form.hireDate) > new Date()
-    ) {
-      errors.push("Hire date cannot be in the future.");
-    }
+   
 
     return errors;
   };
@@ -658,14 +702,25 @@ export default function UsersPage() {
           </div>
 
           {hasPermission("USER_CREATE") && (
-            <button
-              type="button"
-              onClick={openAddModal}
-              className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md"
-            >
-              <Plus size={17} />
-              Add User
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-md"
+              >
+                <FileSpreadsheet size={17} />
+                Import Users
+              </button>
+
+              <button
+                type="button"
+                onClick={openAddModal}
+                className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md"
+              >
+                <Plus size={17} />
+                Add User
+              </button>
+            </div>
           )}
         </div>
 
@@ -914,7 +969,6 @@ export default function UsersPage() {
               <p className="text-sm font-medium text-slate-500">
                 No users found.
               </p>
-             
             </div>
           )}
 
@@ -968,6 +1022,165 @@ export default function UsersPage() {
             }}
             onSubmit={handleCreate}
           />
+        )}
+
+        {showImportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900">
+              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-950 dark:text-white">
+                    Import Users
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Upload an Excel file to create multiple users at once.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                    setImportResult(null);
+                  }}
+                  className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6 p-6">
+                <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center transition dark:border-slate-700 dark:bg-slate-950/40">
+                  <FileSpreadsheet className="mx-auto h-12 w-12 text-blue-500" />
+
+                  <h3 className="mt-4 text-sm font-bold text-slate-900 dark:text-white">
+                    Select Excel file
+                  </h3>
+
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Supported formats: .xlsx and .xls
+                  </p>
+
+                  <label className="mt-5 inline-flex cursor-pointer items-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700">
+                    Choose File
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null;
+                        setImportFile(file);
+                        setImportResult(null);
+                      }}
+                    />
+                  </label>
+
+                  {importFile && (
+                    <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-left dark:border-blue-900 dark:bg-blue-950/40">
+                      <div className="flex items-center gap-3">
+                        <FileSpreadsheet className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
+
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                            {importFile.name}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {(importFile.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {importResult && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center dark:border-slate-800 dark:bg-slate-950">
+                        <p className="text-2xl font-extrabold text-slate-950 dark:text-white">
+                          {importResult.totalRows}
+                        </p>
+
+                        <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                          Total
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                        <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                          {importResult.successCount}
+                        </p>
+
+                        <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          Imported
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center dark:border-red-900/60 dark:bg-red-950/30">
+                        <p className="text-2xl font-extrabold text-red-600 dark:text-red-400">
+                          {importResult.failedCount}
+                        </p>
+
+                        <p className="mt-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                          Failed
+                        </p>
+                      </div>
+                    </div>
+
+                    {importResult.errors.length > 0 && (
+                      <div className="max-h-56 overflow-y-auto rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/20">
+                        <p className="mb-3 text-sm font-bold text-red-700 dark:text-red-400">
+                          Import Errors
+                        </p>
+
+                        <div className="space-y-2">
+                          {importResult.errors.map((item, index) => (
+                            <div
+                              key={`${item.row}-${index}`}
+                              className="rounded-xl bg-white px-3 py-2 text-xs dark:bg-slate-900"
+                            >
+                              <span className="font-bold text-slate-900 dark:text-white">
+                                Row {item.row}:
+                              </span>{" "}
+                              <span className="text-slate-600 dark:text-slate-400">
+                                {item.message}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowImportModal(false);
+                      setImportFile(null);
+                      setImportResult(null);
+                    }}
+                    className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!importFile || importing}
+                    onClick={handleImportUsers}
+                    className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {importing ? "Importing..." : "Import Users"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {showEditModal && selectedUser && (

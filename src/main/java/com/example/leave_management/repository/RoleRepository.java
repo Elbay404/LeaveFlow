@@ -11,5 +11,8 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     boolean existsByName(String name);
 
+    //for excel import
+    Optional<Role> findByNameIgnoreCase(String name);
+
 
 }

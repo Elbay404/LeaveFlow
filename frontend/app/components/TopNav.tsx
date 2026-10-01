@@ -1,15 +1,15 @@
 "use client";
 
 import {
-  Bell,
   ChevronDown,
   LogOut,
   Menu,
   Settings,
-  UserRound,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+import NotificationCenter from "./NotificationCenter";
 
 type TopNavProps = {
   firstName?: string;
@@ -77,15 +77,8 @@ export default function TopNav({
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        <button
-          aria-label="Notifications"
-          className="group relative flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-        >
-          <Bell className="h-[19px] w-[19px] transition-transform duration-200 group-hover:rotate-[-8deg]" />
-
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-500 ring-2 ring-white" />
-        </button>
-
+        
+<NotificationCenter />
         <div className="hidden h-9 w-px bg-slate-200 sm:block" />
 
         <div className="relative">
@@ -135,37 +128,13 @@ export default function TopNav({
               />
 
               <div className="absolute right-0 top-[60px] z-50 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10">
-                <div className="relative overflow-hidden bg-[#0b1120] p-4">
-                  <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-500/20 blur-2xl" />
-
-                  <div className="relative flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-blue-400/30 bg-blue-500/20 text-sm font-bold text-blue-300">
-                      {initials}
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">
-                        {displayName}
-                      </p>
-
-                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
-                        {role ?? "User"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+               
 
                 <div className="p-2">
-                  <button
-                    className="flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
-                      <UserRound className="h-4 w-4" />
-                    </div>
-                    Profile
-                  </button>
+               
 
                   <button
+                    onClick={() => router.push("/settings")}
                     className="flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
