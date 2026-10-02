@@ -4,10 +4,13 @@ package com.example.leave_management.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.*;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import java.time.LocalDate;
 
 @Entity
+@Audited
 @Table(name = "users")
 @Getter
 @Setter
@@ -30,6 +33,7 @@ public class User {
     @Email
     private String email;
 
+    @NotAudited
     @Column(nullable = false)
     private String password;
 
@@ -64,7 +68,7 @@ public class User {
     @Column(name = "annual_leave_balance", nullable = false)
     private Integer annualLeaveBalance;
 
-
+    @NotAudited
     @Column(name = "token_version", nullable = false)
     private Integer tokenVersion = 0;
 }

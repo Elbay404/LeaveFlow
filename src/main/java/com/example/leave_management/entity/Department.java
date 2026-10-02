@@ -2,8 +2,10 @@ package com.example.leave_management.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.envers.Audited;
 
 @Entity
+@Audited
 @Table(name = "departments")
 @Getter
 @Setter

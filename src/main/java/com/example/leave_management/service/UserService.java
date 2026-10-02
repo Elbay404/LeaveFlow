@@ -319,7 +319,6 @@ public class UserService {
             user.setPhone(request.phone());
         }
         if (request.hireDate() != null) {
-
             LocalDate newHireDate = request.hireDate();
 
             user.setHireDate(newHireDate);
@@ -327,8 +326,6 @@ public class UserService {
             if (newHireDate.isAfter(LocalDate.now())) {
                 user.setActive(false);
                 user.setTokenVersion(user.getTokenVersion() + 1);
-            } else {
-                user.setActive(true);
             }
         }
 
@@ -383,7 +380,19 @@ public class UserService {
                 user.getDepartment().getName(),
                 user.getHireDate(),
                 user.getBirthDate(),
-                user.getAnnualLeaveBalance()
+                user.getAnnualLeaveBalance(),
+                user.getManager() != null
+                        ? user.getManager().getId()
+                        : null,
+                user.getManager() != null
+                        ? user.getManager().getFirstName()
+                        : null,
+                user.getManager() != null
+                        ? user.getManager().getLastName()
+                        : null,
+                user.getManager() != null
+                        ? user.getManager().getEmail()
+                        : null
         );
     }
 

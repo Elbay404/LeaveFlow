@@ -3,11 +3,13 @@ package com.example.leave_management.entity;
 import com.example.leave_management.enums.LeaveStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.envers.Audited;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
+@Audited
 @Table(name = "leaves")
 @Getter
 @Setter

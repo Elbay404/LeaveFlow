@@ -1241,12 +1241,148 @@ databaseChangeLog:
 
 
 
+  - changeSet:
+      id: create-envers-audit-schema
+      author: bayrem
+      changes:
+        - sql:
+            sql: |
+              CREATE SEQUENCE revinfo_seq
+              START WITH 1
+              INCREMENT BY 50;
 
+              CREATE TABLE revinfo (
+                  rev INTEGER NOT NULL DEFAULT nextval('revinfo_seq'),
+                  revtstmp BIGINT,
+                  CONSTRAINT revinfo_pkey PRIMARY KEY (rev)
+              );
 
+              CREATE TABLE users_aud (
+                  id BIGINT NOT NULL,
+                  rev INTEGER NOT NULL,
+                  revtype SMALLINT NOT NULL,
+                  first_name VARCHAR(255),
+                  last_name VARCHAR(255),
+                  email VARCHAR(255),
+                  password VARCHAR(255),
+                  phone VARCHAR(255),
+                  active BOOLEAN,
+                  must_change_password BOOLEAN,
+                  birth_date DATE,
+                  role_id BIGINT,
+                  department_id BIGINT,
+                  manager_id BIGINT,
+                  ldap_uid VARCHAR(255),
+                  hire_date DATE,
+                  annual_leave_balance INTEGER,
+                  token_version INTEGER,
+                  CONSTRAINT pk_users_aud PRIMARY KEY (id, rev),
+                  CONSTRAINT fk_users_aud_rev
+                      FOREIGN KEY (rev)
+                      REFERENCES revinfo (rev)
+              );
 
+              CREATE TABLE roles_aud (
+                  id BIGINT NOT NULL,
+                  rev INTEGER NOT NULL,
+                  revtype SMALLINT NOT NULL,
+                  name VARCHAR(255),
+                  description VARCHAR(500),
+                  CONSTRAINT pk_roles_aud PRIMARY KEY (id, rev),
+                  CONSTRAINT fk_roles_aud_rev
+                      FOREIGN KEY (rev)
+                      REFERENCES revinfo (rev)
+              );
 
+              CREATE TABLE departments_aud (
+                  id BIGINT NOT NULL,
+                  rev INTEGER NOT NULL,
+                  revtype SMALLINT NOT NULL,
+                  name VARCHAR(255),
+                  description VARCHAR(500),
+                  CONSTRAINT pk_departments_aud PRIMARY KEY (id, rev),
+                  CONSTRAINT fk_departments_aud_rev
+                      FOREIGN KEY (rev)
+                      REFERENCES revinfo (rev)
+              );
 
+              CREATE TABLE leave_types_aud (
+                  id BIGINT NOT NULL,
+                  rev INTEGER NOT NULL,
+                  revtype SMALLINT NOT NULL,
+                  code VARCHAR(255),
+                  name VARCHAR(255),
+                  description VARCHAR(500),
+                  consumes_balance BOOLEAN,
+                  requires_document BOOLEAN,
+                  max_days INTEGER,
+                  CONSTRAINT pk_leave_types_aud PRIMARY KEY (id, rev),
+                  CONSTRAINT fk_leave_types_aud_rev
+                      FOREIGN KEY (rev)
+                      REFERENCES revinfo (rev)
+              );
 
+              CREATE TABLE leaves_aud (
+                  id BIGINT NOT NULL,
+                  rev INTEGER NOT NULL,
+                  revtype SMALLINT NOT NULL,
+                  user_id BIGINT,
+                  leave_type_id BIGINT,
+                  start_date DATE,
+                  end_date DATE,
+                  duration INTEGER,
+                  reason VARCHAR(1000),
+                  requested_at TIMESTAMP,
+                  updated_at TIMESTAMP,
+                  approved_by BIGINT,
+                  approved_at TIMESTAMP,
+                  rejection_reason VARCHAR(1000),
+                  document_name VARCHAR(255),
+                  document_path VARCHAR(255),
+                  status VARCHAR(255),
+                  CONSTRAINT pk_leaves_aud PRIMARY KEY (id, rev),
+                  CONSTRAINT fk_leaves_aud_rev
+                      FOREIGN KEY (rev)
+                      REFERENCES revinfo (rev)
+              );
 
+  - changeSet:
+      id: add-username-to-revinfo
+      author: bayrem
+      changes:
+        - addColumn:
+            tableName: revinfo
+            columns:
+              - column:
+                  name: username
+                  type: VARCHAR(255)
 
+  - changeSet:
+      id: add-audit-management
+      author: bayrem
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO modules (name)
+              VALUES ('AUDIT_MANAGEMENT');
+              
+              INSERT INTO permissions (name, description, module_id)
+              SELECT
+                  'AUDIT_READ',
+                  'View system audit history and change logs',
+                  id
+              FROM modules
+              WHERE name = 'AUDIT_MANAGEMENT';
 
+  - changeSet:
+      id: assign-audit-read-to-hr
+      author: bayrem
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (role_id, permission_id)
+              SELECT r.id, p.id
+              FROM roles r
+              CROSS JOIN permissions p
+              WHERE r.name = 'HR'
+                AND p.name = 'AUDIT_READ';

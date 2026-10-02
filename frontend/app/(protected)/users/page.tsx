@@ -52,6 +52,10 @@ type User = {
   hireDate: string;
   annualLeaveBalance: number;
   birthDate?: string | null;
+  managerId?: number | null;
+  managerFirstName?: string | null;
+  managerLastName?: string | null;
+  
 };
 
 type Department = {
@@ -1569,6 +1573,15 @@ function UserInfoModal({ user, onClose, formatDate }: UserInfoModalProps) {
                 label="Department"
                 value={user.departmentName || "—"}
               />
+              <InfoValue
+                label="Manager"
+                value={
+                  user.managerFirstName && user.managerLastName
+                    ? `${user.managerFirstName} ${user.managerLastName}`
+                    : "—"
+                }
+              />
+              
               <InfoValue label="Hire Date" value={formatDate(user.hireDate)} />
             </InfoCard>
 

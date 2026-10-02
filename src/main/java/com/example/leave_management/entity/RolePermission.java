@@ -2,8 +2,10 @@ package com.example.leave_management.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Audited;
 
 @Entity
+
 @Table(name = "role_permissions")
 @Getter
 @Setter

@@ -14,5 +14,10 @@ public record UserResponse(
         String departmentName,
         LocalDate hireDate,
         LocalDate birthDate,
-        Integer annualLeaveBalance
-) {}
+        double annualLeaveBalance,
+        Long managerId,
+        String managerFirstName,
+        String managerLastName,
+        String managerEmail
+) {
+}

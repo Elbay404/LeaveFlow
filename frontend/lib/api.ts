@@ -622,3 +622,47 @@ export async function getMyLeaveBalance() {
 export function getLeaveDocumentUrl(id: number) {
   return `http://localhost:8080/api/leaves/${id}/document`;
 }
+
+
+//audit
+export async function getAuditLogs() {
+  const response = await fetch(
+    `${API_URL}/api/audit`,
+    {
+      method: "GET",
+      credentials: "include",
+    },
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(
+      message || "Failed to get audit logs",
+    );
+  }
+
+  return response.json();
+}
+
+export async function getAuditHistory(
+  entityType: string,
+  entityId: number,
+) {
+  const response = await fetch(
+    `${API_URL}/api/audit/${entityType}/${entityId}`,
+    {
+      method: "GET",
+      credentials: "include",
+    },
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(
+      message || "Failed to get audit history",
+    );
+  }
+
+  return response.json();
+}
+//

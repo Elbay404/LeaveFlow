@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  FileClock,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -104,6 +105,12 @@ const navigationGroups = [
         icon: ShieldCheck,
         permission: "USER_UPDATE",
       },
+      {
+  label: "History",
+  href: "/history",
+  icon: FileClock,
+  permission: "AUDIT_READ",
+},
     ],
   },
 ];
@@ -193,7 +200,9 @@ export default function Sidebar({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-7">
+        <div
+  className="min-h-0 flex-1 overflow-y-auto px-4 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+>
           {navigationGroups.map((group) => {
             const visibleItems = group.items.filter(canAccess);
 
