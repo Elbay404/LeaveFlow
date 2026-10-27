@@ -203,13 +203,14 @@ export default function UsersPage() {
           ? usersResponse.content
           : [];
 
+       
       setUsers(userData);
 
       if (!Array.isArray(usersResponse) && "totalPages" in usersResponse) {
         setTotalPages(Math.max(1, usersResponse.totalPages));
         setTotalUsers(usersResponse.totalElements ?? 0);
       } else {
-        setTotalPages(Math.max(1, Math.ceil(userData.length / ITEMS_PER_PAGE)));
+        setTotalPages(Math.max(1, Math.ceil(userData.length / ITEMS_PER_PAGE))); //verify this
         setTotalUsers(userData.length);
       }
     } catch (loadError) {

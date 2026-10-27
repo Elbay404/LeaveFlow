@@ -34,7 +34,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private Bucket createBucket(int capacity, Duration duration) {
 
-        Refill refill = Refill.greedy(capacity, duration);//intervally()
+        Refill refill = Refill.greedy(capacity, duration);  //intervally()
 
         Bandwidth limit = Bandwidth.classic(capacity, refill);
 
@@ -51,7 +51,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         if (path.equals("/api/auth/login")) {
 
-            bucket = buckets.computeIfAbsent("login:" + clientIp, key -> createBucket(5, Duration.ofMinutes(1)));
+            bucket = buckets.computeIfAbsent("login:" + clientIp,
+                    key -> createBucket(5, Duration.ofMinutes(1)));
 
         } else if (path.equals("/api/auth/forgot-password")) {
 

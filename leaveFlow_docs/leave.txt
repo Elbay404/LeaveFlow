@@ -1,0 +1,103 @@
++ Role table			   ------ DONE------
++ Global Error handling 	    ------ DONE------
++ Email buisness logic              ------ DONE------
++ Liquibase config			   ------ DONE------
++ CRUD modules                            ------ DONE------
++ CRUD role                               ------ DONE------
++ Pagination for gets                ------ DONE------
++ leave managment workflow                ------ DONE------
++ user workflow                        ------ DONE------                
+* script for permissions liquibase       ------ DONE------
+* Workflow Employee -> department        ------ DONE------
+* autorisation                           ------ DONE------
+* Ldap authetication + modification email disable     ------ DONE------
+* leave service (rejection ..)& controller        ------ DONE------
+* email & document workflow                      ------ DONE------
+* filter by department_id with query native      ------ DONE------
+* balsamiq + figma			------ DONE------
+
+
+
+1. mustChangePassword workflow            ------ DONE------
+2. Account activation/deactivation          ------ DONE------
+3. Leave history/audit
+
+
+frontend : 
+	   * if user cancel his request he can request again with same dates.
+	   * if the request reach the start date and its status still pending it become cancel.
+	   
+	   
+
+Dashboard : charts /profile  redirection to settings -----done--------
+
+USers : show only active users if the role is not hr or ceo/pagination/ action buttons : edit /toggle active / reset password /	with pop ups/by default it shows u ur current department and u can filter all department or 	specific one /  and on add user add hire date // ---------------done
+ 
+Leave : "reason" not required /add "requested at" field / pagination max 5 per page/balance prob & 	recents leaves should be  on top----------------done (still doc)
+ 
+
+roles : delete id + make edit just round icone with pencil /add modules and permissions check 	window ----------------done
+
+calendar : if leave in weekend or public holiday dont show it it calendar/ make the key on top of 	calendar ----------------------done
+
+*public & private endpoints -----------------done-----------------
+*Add holiday in public holidays -------------done------------
+
+*also he can imports file excel with users   -----done--------
+*global handle exception  --------done-------------
+
+*liste des conge et maxdays                -----done--------
+*Company Leave history and track
+*les jours restants ..                 ------doneeeee--------
+
+*if error != 200 .... show it                     ------doneeeee--------
+
+
+*test manger user changing              -----done--------
+*chronojob each year the solde become 0        -----done--------
+* email generated amelioration            -----done--------
+
+* rate -limiting Bucket4j                      -----done--------
+* email templates                                  -----done-------    
+*diags use case                                         -----done--------
+
+*if pending requests reach date it will be cancel (cron)   ------doneeeee--------
+
+
+
+docker exec Leave-ldap ldapsearch -x -H ldap://localhost:389 -D "cn=admin,dc=company,dc=local" -w adminLdap -b "ou=people,dc=company,dc=local" "(uid=admin)"
+
+//search
+docker exec Leave-ldap ldapsearch -x -H ldap://localhost:389 -D "cn=admin,dc=company,dc=local" -w adminLdap -b "ou=people,dc=company,dc=local" "(objectClass=inetOrgPerson)" uid cn sn mail
+
+
+
+//leave page : Real profile pictures instead of initials
+
+*Document download/view from the details modal     -----done-------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+permission flow!!!!!!!!!!!
