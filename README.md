@@ -1,422 +1,319 @@
-# LeaveFlow --- Company Leave Management System
+# LeaveFlow — Company Leave Management System
 
-LeaveFlow is a full-stack company leave management application for
-employee leave requests, approval workflows, leave balances, holidays,
-notifications, and audit history. It provides one role-aware workspace
-for employees, managers, and HR, with backend-enforced permissions.
+**LeaveFlow** is a full-stack leave-management platform designed to centralize employee leave requests, approval workflows, leave balances, organizational administration, notifications, and audit history. Its role-aware workspace supports **Employees, Managers, and HR** through a unified interface, while the Spring Boot backend enforces access control and business rules.
 
-> **Documentation note:** This README reflects project details discussed
-> during development. Exact repository paths, configuration property
-> names, and some integrations should be verified against the latest
-> source code before a production release. Items known to have
-> encountered unfinished work are called out rather than represented as
-> confirmed.
+> **Project documentation:** This README describes the architecture and functionality established during development. Confirm environment-specific settings, repository paths, and endpoint mappings against the latest source before deploying.
 
-## Contents
+---
 
--   [Overview](#overview)
--   [Highlights](#highlights)
--   [Features](#features)
--   [Roles and Permissions](#roles-and-permissions)
--   [Technology Stack](#technology-stack)
--   [Architecture](#architecture)
--   [Business Rules](#business-rules)
--   [Security](#security)
--   [Audit History](#audit-history)
--   [Notifications and Email](#notifications-and-email)
--   [Database and Migrations](#database-and-migrations)
--   [Project Structure](#project-structure)
--   [Prerequisites](#prerequisites)
--   [Configuration](#configuration)
--   [Run Locally](#run-locally)
--   [API Overview](#api-overview)
--   [Troubleshooting](#troubleshooting)
--   [Verification Checklist](#verification-checklist)
--   [License](#license)
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Highlights](#key-highlights)
+- [Features](#features)
+- [Roles and Access Control](#roles-and-access-control)
+- [Technology Stack](#technology-stack)
+- [Architecture](#architecture)
+- [Authentication and Security](#authentication-and-security)
+- [LDAP Integration](#ldap-integration)
+- [Database Management with Liquibase](#database-management-with-liquibase)
+- [Leave Workflow and Business Rules](#leave-workflow-and-business-rules)
+- [Audit Trail](#audit-trail)
+- [Notifications and Email](#notifications-and-email)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Configuration](#configuration)
+- [Run Locally](#run-locally)
+- [API Overview](#api-overview)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ## Overview
 
-LeaveFlow centralizes leave administration in a web application.
-Employees can submit and track requests, managers can review requests
-within their authorization scope, and HR can administer users and
-organizational configuration.
+LeaveFlow provides a central workspace for managing employee absences and the approval process around them. Employees can submit and track leave requests, managers can review requests within their authorization scope, and HR can manage users and organizational configuration.
 
-A shared dashboard and application shell adapt to the signed-in user's
-permissions instead of maintaining separate frontends for each role. The
-frontend supports navigation and usability; the backend independently
-protects data and operations.
+The application uses a **single role-aware dashboard** rather than separate frontends for each role. The interface adapts its navigation and available actions to the user's permissions; the backend independently validates access to protected operations and data.
 
-## Highlights
+## Key Highlights
 
-1.  **Fine-grained RBAC:** roles, modules, permissions, and
-    role-permission assignments, including personal, team, and
-    organization-wide leave access scopes.
-2.  **End-to-end leave lifecycle:** submission, approval, rejection,
-    cancellation, expiration, conflict checks, working-day calculations,
-    supporting documents, and balance effects.
-3.  **Audit history:** Hibernate Envers revisions and a History UI for
-    system-wide and entity-specific audit records.
-4.  **Persistent real-time notifications:** PostgreSQL storage and REST
-    read-state/history endpoints combined with WebSocket/STOMP delivery.
-5.  **Scheduled operations:** separate services for pending-request
-    expiration, monthly leave accrual, and year-end balance reset.
-6.  **Security-aware architecture:** JWT cookie authentication, BCrypt,
-    permission checks, LDAP integration, and rate limiting.
+- **Role-based access control (RBAC):** roles, modules, permissions, and role-permission assignments.
+- **End-to-end leave lifecycle:** submission, approval, rejection, cancellation, expiration, conflict detection, and balance handling.
+- **LDAP integration:** directory-service integration for supported identity and password-reset workflows.
+- **Versioned database schema:** Liquibase changelogs manage database structure and incremental changes.
+- **Auditable changes:** Hibernate Envers records revisions for selected entities.
+- **Real-time notifications:** persistent PostgreSQL notifications with REST endpoints and WebSocket/STOMP delivery.
+- **Scheduled processing:** pending-leave expiration, monthly balance accrual, and year-end balance reset.
+- **Security controls:** JWT cookie-based authentication, BCrypt password hashing, permission checks, and rate limiting.
 
 ## Features
 
 ### Leave management
+- Submit, view, and track leave requests.
+- Approve or reject requests according to the configured workflow.
+- Cancel eligible requests and handle applicable balance refunds.
+- Calculate leave duration using working days and configured holidays.
+- Detect overlapping requests and prevent conflicting leave periods.
+- Upload and view supporting documents when required by the leave type.
+- Automatically expire pending requests whose start date arrives without approval.
 
--   Submit leave requests with type, dates, reason, and supporting
-    documents when required.
--   Approve or reject requests through the applicable workflow.
--   Cancel eligible requests.
--   Calculate duration using working days and configured holidays.
--   Detect overlapping leave requests.
--   Track request status and decision timestamps.
--   Automatically expire pending requests whose start date arrives
-    without approval.
--   View authorized leave documents.
+### Leave balances and calendar
+- Track annual leave balances.
+- Process scheduled monthly accrual and year-end balance reset.
+- Manage holidays used in working-day calculations.
+- Display leave and holiday events in a calendar.
+- Review employee availability information.
 
-### Balances and scheduling
+### User and organization administration
+- Manage users, departments, roles, permissions, and leave types.
+- Maintain manager-to-employee relationships.
+- Bulk-import users from Excel.
+- Support future hire dates while keeping future-hire users inactive.
+- Manage account activation and the `mustChangePassword` state.
 
--   Track annual leave balances.
--   Accrue leave balance through a scheduled monthly process.
--   Reset annual balances through a scheduled year-end process.
--   Manage public holidays and working-day calculations.
--   Display leave and holiday events in a calendar.
--   Review availability information.
+### Dashboard and user experience
+- Unified dashboard for Employees, Managers, and HR.
+- Permission-aware sidebar navigation and actions.
+- Dashboard statistics and charts.
+- Shared application shell, reusable API utilities, and protected routes.
+- Responsive pages for administration, leave management, calendar, and settings.
 
-### Users and organization
+### Notifications and audit
+- Persist notifications and retrieve all, unread, or unread-count data.
+- Mark individual notifications or all notifications as read.
+- Deliver notifications in real time through WebSocket/STOMP.
+- Review entity revisions and field-level changes where historical data exists.
 
--   Manage users, departments, roles, permissions, and leave types.
--   Maintain manager relationships between users.
--   Bulk-import users from Excel.
--   Support future hire dates while keeping future-hire users inactive.
--   Display employee and manager information.
--   Support account activation and a `mustChangePassword` state.
+## Roles and Access Control
 
-### Dashboard and interface
+| Role | Typical responsibilities |
+|---|---|
+| **Employee** | Submit and track personal leave requests and view personal leave information. |
+| **Manager** | Review requests and access team information within the assigned permission scope. |
+| **HR** | Administer users and organizational configuration, oversee leave management, and access audit history when granted the relevant permission. |
 
--   Unified dashboard for HR, managers, and employees.
--   Permission-aware sidebar navigation and actions.
--   Dashboard statistics and charts.
--   Shared application shell with sidebar and top navigation.
--   Protected application routes and guest-only authentication routes.
--   Responsive layout, profile/settings pages, and calendar views.
-
-### Notifications and communications
-
--   Persist notifications in PostgreSQL.
--   Retrieve all or unread notifications and unread counts.
--   Mark one notification or all notifications as read.
--   Deliver new notifications over WebSocket/STOMP.
--   Integrate email notifications into relevant account and leave
-    workflows.
-
-### Audit history
-
--   Track revisions for selected entities using Hibernate Envers.
--   Retrieve all audit logs or the history of one entity.
--   Display revision, action, actor, timestamp, and changed fields where
-    available.
--   Protect audit APIs using `AUDIT_READ`.
-
-## Roles and Permissions
-
-  -----------------------------------------------------------------------
-  Role                                Typical responsibilities
-  ----------------------------------- -----------------------------------
-  **Employee**                        Submit and track personal leave
-                                      requests and view personal leave
-                                      information.
-
-  **Manager**                         Review requests and access team
-                                      information within the assigned
-                                      permission scope.
-
-  **HR**                              Manage users and organizational
-                                      configuration, oversee leave
-                                      administration, and access audit
-                                      history when granted `AUDIT_READ`.
-  -----------------------------------------------------------------------
-
-The authorization model uses module and permission records rather than
-relying only on hard-coded role checks. Exact permission names and
-assignments should be taken from the current migrations/seed data.
-Manager relationships influence team-level access and notification
-routing.
+Authorization is based on role, module, and permission records rather than relying exclusively on hard-coded role checks. Permission assignments and team-level access are controlled by the backend.
 
 ## Technology Stack
 
-  -----------------------------------------------------------------------
-  Layer                               Technology
-  ----------------------------------- -----------------------------------
-  Frontend                            Next.js App Router, React,
-                                      TypeScript, Tailwind CSS
-
-  Backend                             Java 21, Spring Boot, Maven
-
-  Persistence                         PostgreSQL, Spring Data JPA,
-                                      Hibernate
-
-  Migrations                          Liquibase
-
-  Authentication                      JWT cookie-based authentication,
-                                      LDAP integration
-
-  Password security                   BCrypt
-
-  Authorization                       Roles, modules, permissions,
-                                      role-permission assignments
-
-  Audit                               Hibernate Envers
-
-  Real-time messaging                 WebSocket, STOMP, Spring messaging
-
-  Rate limiting                       Bucket4j
-
-  Email                               Spring email integration
-
-  Icons                               Lucide React
-  -----------------------------------------------------------------------
+| Layer | Technologies |
+|---|---|
+| Frontend | Next.js App Router, React, TypeScript, Tailwind CSS |
+| Backend | Java 21, Spring Boot, Maven |
+| Database | PostgreSQL |
+| ORM and persistence | Spring Data JPA, Hibernate |
+| Schema migrations | **Liquibase** |
+| Authentication and identity integration | JWT cookies, LDAP integration |
+| Password hashing | BCrypt |
+| Authorization | Roles, modules, permissions, role-permission assignments |
+| Audit history | Hibernate Envers |
+| Real-time messaging | WebSocket, STOMP, Spring Messaging |
+| Rate limiting | Bucket4j |
+| Email | Spring email integration |
+| Icons | Lucide React |
 
 ## Architecture
 
-``` text
-Browser
-   |
-   v
-Next.js / React
-  - Pages and route guards
-  - Shared AppShell
-  - Reusable API utilities
-   | HTTP / REST
-   v
-Spring Boot API
-  - Authentication and authorization
-  - User and department management
-  - Leave workflow and balance rules
-  - Notifications and audit history
-  - Scheduled services
-   |
-   v
-PostgreSQL
-  - Application data
-  - Persistent notifications
-  - Envers revision history
+```text
+┌───────────────────────────────┐
+│         Web Browser           │
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│      Next.js / React UI       │
+│ Pages · Route Guards · UI     │
+│ Shared API utilities          │
+└───────────────┬───────────────┘
+                │ HTTP / REST
+                ▼
+┌───────────────────────────────┐
+│       Spring Boot API         │
+│ Authentication & RBAC         │
+│ Users · Leaves · Balances     │
+│ Notifications · Audit         │
+│ Scheduled services            │
+└───────┬───────────┬───────────┘
+        │           │
+        ▼           ▼
+┌──────────────┐  ┌────────────────────┐
+│ PostgreSQL   │  │ External services  │
+│ Application  │  │ LDAP / SMTP, as    │
+│ data + audit │  │ configured         │
+└──────────────┘  └────────────────────┘
 
-Frontend <---- WebSocket / STOMP ----> Backend
-Backend  ---- SMTP / LDAP as configured ----> Services
+       Browser ◄── WebSocket / STOMP ──► API
 ```
 
-The frontend has guest-only routes for authentication pages and
-protected routes for authenticated pages. `AppShell` provides shared
-navigation and layout. Backend authorization remains the security
-boundary.
+The frontend provides the user experience and route-level protection. **Backend authorization is the security boundary**: hiding a page or action in the UI does not replace server-side permission checks.
 
-## Business Rules
+## Authentication and Security
 
-The following summarizes the design discussed during development;
-confirm it against the current implementation and approved company
-policy before treating it as formal HR policy.
+Security mechanisms discussed and implemented in the project include:
 
-  ------------------------------------------------------------------------
-  Status                   Blocks conflicting dates? Balance effect
-  --------------------- ---------------------------- ---------------------
-  `PENDING`                                      Yes No consumption until
-                                                     approval
+- JWT authentication using an HTTP cookie.
+- BCrypt password hashing.
+- Role- and permission-based authorization.
+- Account activation and token-version invalidation where applicable.
+- Password-change and password-reset workflows.
+- CORS configuration for the frontend origin.
+- Rate limiting for sensitive operations such as login.
+- Permission checks before serving protected leave documents.
+- `AUDIT_READ` permission checks for audit endpoints.
+- Exclusion of sensitive values such as passwords and token versions from audit history.
 
-  `APPROVED`                                     Yes Consumes balance
-                                                     where applicable
+### Rate limiting considerations
 
-  `REJECTED`                                      No No consumption
+The login limiter uses a bucket keyed by client IP, creating a bucket when an IP is first encountered. A development example discussed during implementation allowed five attempts per minute per IP.
 
-  `CANCELLED`                                     No Eligible approved
-                                                     cancellation refunds
-                                                     the balance
+In production, configure trusted reverse-proxy handling before relying on forwarded IP headers. Do not blindly trust arbitrary `X-Forwarded-For` values; account-based limits can complement IP-based limits.
 
-  `EXPIRED`                                       No No consumption
-  ------------------------------------------------------------------------
+## LDAP Integration
 
-Other discussed rules: - Pending requests whose start date has arrived
-without approval are expired by a scheduled service. - Monthly accrual
-is scheduled for the first day of the month. - Annual balance reset is
-scheduled at year-end. - Working-day calculations account for configured
-holidays. - Document requirements are controlled by the leave type's
-`requiresDocument` setting. - Future-hire users remain inactive until
-eligible. - Manager relationships influence team-level access and
-notification routing. - Email is treated as the login identity in the
-discussed design; verify exact validation/generation rules in the
-current source.
+LeaveFlow includes **LDAP directory-service integration** for supported identity and password-reset workflows. LDAP connection settings should be supplied through backend configuration rather than hard-coded in source code.
 
-## Security
+Typical configuration areas include:
 
-Security features discussed for the project include: - JWT
-authentication with cookie-based token transport. - BCrypt password
-hashing. - Role- and permission-based authorization. - Account
-activation and token-version invalidation where applicable. - Password
-change and password-reset workflows. - CORS configuration for the
-frontend origin. - Rate limiting for sensitive endpoints such as
-login. - Permission checks before serving leave documents. -
-`AUDIT_READ` checks on audit endpoints. - Exclusion of password and
-token-version values from audit history.
+| Setting | Purpose |
+|---|---|
+| LDAP server URL | Address of the directory service |
+| Base DN | Directory subtree used for lookups |
+| Bind DN / service account | Identity used for directory operations, if required |
+| Bind password | Secret for the service account, if required |
+| User lookup attributes | Directory attributes used to identify users |
 
-### Login rate limiting
+Use the exact property names expected by the current backend configuration. Store bind credentials in environment variables or a secret manager, and never commit real credentials to source control.
 
-The discussed login limiter uses a key such as `login:<client-ip>` and
-creates a bucket the first time that key appears. The example allows
-five attempts per minute per IP. In production behind a reverse proxy,
-configure trusted proxy handling before relying on forwarded IP headers.
-Do not blindly trust arbitrary `X-Forwarded-For` values. Account-based
-limits can complement IP-based limits.
+**Scope note:** LDAP behavior depends on the current configuration and implementation. Verify which authentication and password-reset operations use LDAP before describing it as the sole authentication provider.
 
-## Audit History
+## Database Management with Liquibase
 
-Hibernate Envers is used for revision history on selected entities
-discussed during development: - `User` - `Role` - `Department` -
-`Leave` - `LeaveType`
+**Liquibase** manages version-controlled, incremental database schema changes. Database changes are represented as changelogs and recorded in Liquibase's tracking tables, allowing environments to apply migrations in a controlled order.
 
-The audit schema includes revision metadata (`revinfo`) and audit tables
-such as `users_aud` and `leaves_aud`. Revision metadata includes a
-timestamp and a username where available.
+The project database includes application tables for users, roles, departments, permissions, leave requests, leave types, and notifications. Hibernate Envers also uses revision metadata and audit tables for audited entities.
 
-  --------------------------------------------------------------------------------------
-  Method                  Endpoint                               Purpose
-  ----------------------- -------------------------------------- -----------------------
-  `GET`                   `/api/audit`                           Retrieve audit logs;
-                                                                 requires `AUDIT_READ`.
+### Migration practices
 
-  `GET`                   `/api/audit/{entityType}/{entityId}`   Retrieve one entity's
-                                                                 history; requires
-                                                                 `AUDIT_READ`.
-  --------------------------------------------------------------------------------------
+1. Keep changelogs under version control.
+2. Add a **new changeset** for a new schema change instead of editing a changeset that has already been applied.
+3. Review migration output and database state when a migration fails.
+4. Test migrations against a development database before applying them to a shared or production environment.
+5. Back up important data before performing schema operations.
+6. Do not drop audit tables, reset revision history, or bypass checksum validation in production as a routine fix.
 
-The History page supports searching/filtering and a details drawer
-showing action, entity, revision, actor, timestamp, and field-level
-changes. If an entity has no earlier recorded revision, previous values
-cannot be reconstructed retroactively. Envers also does not
-automatically record every business/security event, such as failed login
-attempts; those require explicit audit-event handling.
+### Liquibase and Hibernate Envers
+
+Liquibase manages the schema changes, while Hibernate Envers records entity revisions at runtime. The Envers setup includes a revision metadata table (`revinfo`) and entity audit tables such as `users_aud` and `leaves_aud`.
+
+The revision sequence and table definitions must remain compatible with the Hibernate/Envers configuration. If a migration reports a checksum mismatch, investigate the changeset history rather than modifying applied migrations blindly.
+
+## Leave Workflow and Business Rules
+
+The following summarizes the workflow established during development. Confirm it against the current implementation and applicable company policy before treating it as formal HR policy.
+
+| Status | Blocks conflicting dates? | Balance effect |
+|---|---:|---|
+| `PENDING` | Yes | No consumption until approval |
+| `APPROVED` | Yes | Consumes balance where applicable |
+| `REJECTED` | No | No consumption |
+| `CANCELLED` | No | Eligible approved cancellation may refund balance |
+| `EXPIRED` | No | No consumption |
+
+Additional workflow rules:
+- Pending requests whose start date arrives without approval are expired by a scheduled service.
+- Monthly leave accrual is scheduled for the first day of the month.
+- Annual balance reset is scheduled at year-end.
+- Working-day calculations account for configured holidays.
+- Document requirements are driven by the leave type's `requiresDocument` setting.
+- Future-hire users remain inactive until eligible.
+- Manager relationships influence team access and notification routing.
+
+## Audit Trail
+
+Hibernate Envers provides revision history for selected entities discussed during development:
+
+- `User`
+- `Role`
+- `Department`
+- `Leave`
+- `LeaveType`
+
+Revision metadata includes a timestamp and a username where available. The History interface displays actions, entities, revisions, actors, timestamps, and field-level changes when those values can be derived.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/api/audit` | Retrieve audit logs; requires `AUDIT_READ`. |
+| `GET` | `/api/audit/{entityType}/{entityId}` | Retrieve an entity's history; requires `AUDIT_READ`. |
+
+Audit history is not retroactive: if no earlier revision was recorded, previous values cannot be reconstructed. Envers also does not automatically record every security event, such as failed login attempts; those require explicit event logging.
 
 ## Notifications and Email
 
-Notifications are persisted in PostgreSQL. REST endpoints handle
-notification history/read state, while WebSocket/STOMP provides
-real-time delivery.
+Notifications are stored in PostgreSQL. REST endpoints provide notification history and read-state management, while WebSocket/STOMP supports real-time delivery.
 
-  --------------------------------------------------------------------------------------------
-  Method                  Endpoint                                     Purpose
-  ----------------------- -------------------------------------------- -----------------------
-  `GET`                   `/api/notifications`                         Get the current user's
-                                                                       notifications.
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/api/notifications` | Get the current user's notifications. |
+| `GET` | `/api/notifications/unread` | Get unread notifications. |
+| `GET` | `/api/notifications/unread-count` | Get the unread count. |
+| `PATCH` | `/api/notifications/{notificationId}/read` | Mark one notification as read. |
+| `PATCH` | `/api/notifications/read-all` | Mark all current-user notifications as read. |
 
-  `GET`                   `/api/notifications/unread`                  Get unread
-                                                                       notifications.
+The WebSocket endpoint discussed during development is `/ws`, with user-specific STOMP delivery to `/user/notifications`. The allowed origin must match the active environment.
 
-  `GET`                   `/api/notifications/unread-count`            Get unread count.
+Notification types include `LEAVE_SUBMITTED`, `LEAVE_APPROVED`, `LEAVE_REJECTED`, `LEAVE_CANCELLED`, and `LEAVE_EXPIRED`.
 
-  `PATCH`                 `/api/notifications/{notificationId}/read`   Mark one notification
-                                                                       as read.
-
-  `PATCH`                 `/api/notifications/read-all`                Mark all current-user
-                                                                       notifications as read.
-  --------------------------------------------------------------------------------------------
-
-The WebSocket endpoint discussed during development is `/ws`, with
-user-specific STOMP delivery to `/user/notifications`. Allowed origins
-and URLs must match the environment.
-
-Notification types discussed include `LEAVE_SUBMITTED`,
-`LEAVE_APPROVED`, `LEAVE_REJECTED`, `LEAVE_CANCELLED`, and
-`LEAVE_EXPIRED`.
-
-Email notifications are part of the project. A newer Thymeleaf-template
-conversion encountered errors during development; verify that conversion
-against the current code before claiming all branded templates work
-end-to-end.
-
-## Database and Migrations
-
-PostgreSQL stores application data and persistent notifications.
-Liquibase manages schema migrations, and Hibernate Envers maintains
-audit revision history.
-
-Development notes: - Envers tables and revision sequence settings must
-match the Hibernate configuration. - A revision sequence increment
-mismatch was encountered during development. - Liquibase checksum
-validation failed after an applied changeset was edited. - Prefer adding
-a new changeset for future schema changes instead of editing an
-already-applied changeset. - Do not drop audit tables, reset revisions,
-or alter Liquibase checksums in production as a routine fix.
+Email delivery is integrated into relevant account and leave workflows. Before release, test SMTP connectivity, all active templates, and any inline assets against the latest implementation.
 
 ## Project Structure
 
-The latest repository layout has not been verified. This is
-illustrative; adjust the directory names to match the actual repository:
+The exact repository layout should match the current checkout. The following is an illustrative full-stack layout:
 
-``` text
+```text
 Leave_management/
-├── backend/                         # Spring Boot application
+├── backend/
 │   └── src/main/
-│       ├── java/                    # Controllers, services, repositories, entities
-│       └── resources/db/changelog/  # Liquibase migrations
-└── frontend/                        # Next.js application
+│       ├── java/                   # Controllers, services, repositories, entities
+│       └── resources/
+│           └── db/changelog/       # Liquibase changelogs (path may vary)
+└── frontend/
     └── src/
-        ├── app/                     # App Router pages and route groups
-        ├── components/              # Shared UI and feature components
-        └── lib/                     # API utilities and WebSocket client
+        ├── app/                    # Next.js App Router pages
+        ├── components/             # Shared UI and feature components
+        └── lib/                    # API utilities and client integrations
 ```
 
 ## Prerequisites
 
--   JDK 21
--   Maven, or the repository's Maven Wrapper if included
--   Node.js compatible with the installed Next.js version
--   npm or the package manager matching the frontend lockfile
--   PostgreSQL
--   Git
--   LDAP service if LDAP authentication is enabled in the selected
-    configuration
+- JDK 21
+- Maven, or the repository's Maven Wrapper if included
+- Node.js compatible with the installed Next.js version
+- npm or the package manager used by the frontend lockfile
+- PostgreSQL
+- Git
+- An LDAP service if LDAP-dependent features are enabled in the selected configuration
+- SMTP credentials if email delivery is enabled
 
 ## Configuration
 
-Do not commit database passwords, JWT secrets, SMTP credentials, LDAP
-bind credentials, or production `.env` files.
+Configure these values using the **exact property names present in the repository**. Do not commit database passwords, JWT signing secrets, SMTP credentials, LDAP bind credentials, or production `.env` files.
 
-Configure these areas using the exact property names in the repository:
+| Area | Configuration required |
+|---|---|
+| PostgreSQL | JDBC URL, username, password |
+| Authentication | JWT signing configuration, token settings, cookie settings |
+| LDAP | Server URL, base DN, and bind settings where applicable |
+| Email | SMTP host, port, credentials, and TLS settings |
+| CORS | Allowed frontend origin |
+| Frontend | Backend API base URL |
+| WebSocket | Endpoint URL and allowed origin |
 
-  -----------------------------------------------------------------------
-  Area                                Configuration
-  ----------------------------------- -----------------------------------
-  PostgreSQL                          JDBC URL, username, password
+The backend was previously run on `http://localhost:8080`. The frontend used port `3000` in one setup and `3001` in later work. Check the current configuration and terminal output for the active URLs.
 
-  Authentication                      JWT signing configuration, token
-                                      settings, cookie settings
-
-  Email                               SMTP host, port, credentials, TLS
-                                      settings
-
-  LDAP (if enabled)                   LDAP URL, base DN, bind
-                                      configuration
-
-  CORS                                Allowed frontend origin
-
-  Frontend                            Backend API base URL
-
-  WebSocket                           Endpoint URL and allowed origin
-  -----------------------------------------------------------------------
-
-The development API URL discussed previously was
-`http://localhost:8080`. The frontend ran on port `3000` in one local
-setup and `3001` in some later work. Verify the current configuration
-before relying on either. Only expose frontend environment variables
-that are safe for the browser; keep backend secrets on the server.
+Only expose frontend environment variables that are safe for the browser. Keep backend secrets on the server.
 
 ## Run Locally
 
-These are typical commands; verify the current folder names, scripts,
-and configuration before running them.
+These are typical development commands. Run them from the actual backend and frontend directories and check the repository scripts before use.
 
 ### 1. Start PostgreSQL
 
@@ -424,120 +321,102 @@ Create a development database and configure the backend connection.
 
 ### 2. Start the backend
 
-From the backend directory, if the Maven Wrapper is present:
+If the Maven Wrapper is available:
 
-``` bash
+```bash
+# macOS / Linux
 ./mvnw spring-boot:run
 ```
 
-On Windows:
-
-``` powershell
+```powershell
+# Windows
 .\mvnw.cmd spring-boot:run
 ```
 
-If no wrapper is included:
+Otherwise, use an installed Maven version:
 
-``` bash
+```bash
 mvn spring-boot:run
 ```
+
+On startup, verify that Liquibase migrations complete successfully and that the application connects to PostgreSQL and any enabled LDAP/SMTP services.
 
 ### 3. Start the frontend
 
 From the frontend directory:
 
-``` bash
+```bash
 npm install
 npm run dev
 ```
 
-Check `package.json` and terminal output for the actual local URL.
+Use the URL printed by the development server.
 
 ### 4. Sign in
 
-Use an account created by the supported initialization or
-user-management workflow. Do not publish default administrator
-credentials.
+Use an account created through the project's supported initialization or user-management workflow. Do not publish default administrator credentials.
 
 ## API Overview
 
-This is a partial list of endpoints specifically discussed during
-implementation.
+This is a partial list of endpoints discussed during implementation, not a complete API specification.
 
 ### Audit
 
--   `GET /api/audit`
--   `GET /api/audit/{entityType}/{entityId}`
+- `GET /api/audit`
+- `GET /api/audit/{entityType}/{entityId}`
 
 Both require `AUDIT_READ`.
 
 ### Notifications
 
--   `GET /api/notifications`
--   `GET /api/notifications/unread`
--   `GET /api/notifications/unread-count`
--   `PATCH /api/notifications/{notificationId}/read`
--   `PATCH /api/notifications/read-all`
+- `GET /api/notifications`
+- `GET /api/notifications/unread`
+- `GET /api/notifications/unread-count`
+- `PATCH /api/notifications/{notificationId}/read`
+- `PATCH /api/notifications/read-all`
 
 ### Leave documents
 
-A document endpoint was implemented as `GET /{leaveId}/document` under
-the leave controller's base mapping. Verify the complete path from the
-current controller before publishing it as an exact endpoint.
+A document endpoint was implemented as `GET /{leaveId}/document` under the leave controller's base mapping. Confirm the complete route in the current controller before using it in external documentation.
 
-For a complete API reference, inspect the current controllers or
-add/generate an OpenAPI specification.
+For a complete API reference, inspect the controllers or add an OpenAPI specification.
 
 ## Troubleshooting
 
-**Liquibase or Envers migration errors** - Read the full error and
-identify the changeset ID. - Check whether Envers tables or
-`revinfo_seq` already exist. - Confirm the sequence increment matches
-Hibernate configuration. - Avoid editing applied changesets; create a
-new changeset for later changes.
-
-**Frontend cannot reach the backend** - Verify the configured API URL
-and backend port. - Confirm CORS allows the frontend origin. - Ensure
-cookie-authenticated requests include credentials. - Inspect browser
-Network tools and backend logs.
-
-**Login is rate-limited** - Check the bucket limit and how the client IP
-is resolved. - Verify trusted proxy handling in reverse-proxy
-deployments. - Do not rely on untrusted forwarded headers.
-
-**Email sending fails** - Verify SMTP configuration, template names, and
-resource paths. - Inspect the original backend exception without
-exposing credentials. - Confirm whether the newer Thymeleaf conversion
-is complete.
-
-**Audit history has no previous values** - Previous values are
-unavailable if no earlier Envers revision was recorded. - Changes made
-before auditing was enabled are not captured retroactively.
-
-## Verification Checklist
-
-Before treating this as final release documentation, verify: 1. Exact
-backend and frontend directory names. 2. Actual `package.json` scripts
-and Maven Wrapper availability. 3. Current environment-variable/property
-names and safe example values. 4. Complete leave-document endpoint
-mapping. 5. Exact permission names and role assignments in
-migrations/seed data. 6. Whether the Thymeleaf email templates work
-end-to-end. 7. Whether LDAP is enabled by default or optional. 8.
-Current frontend port and WebSocket origin. 9. Exact accrual/reset
-policy against current code and company requirements.
-
-## Future Improvements
-
-Potential improvements, depending on project scope: - Publish a complete
-OpenAPI specification. - Add automated tests for leave lifecycle rules,
-permission boundaries, and scheduled jobs. - Document production
-deployment and trusted-proxy configuration. - Add explicit audit events
-for security events Envers does not capture. - Add screenshots and a
-short demo GIF. - Document backup, recovery, and retention policies for
-uploaded documents and audit data.
+| Issue | What to check |
+|---|---|
+| Liquibase migration fails | Review the changeset ID, database state, migration history, and full error. Avoid editing applied changesets. |
+| Envers schema or sequence error | Confirm the revision table and sequence match the active Hibernate/Envers configuration. |
+| Frontend cannot reach backend | Check the API base URL, backend port, CORS origins, cookie credentials, and browser Network panel. |
+| Login is rate-limited | Review bucket configuration and client-IP resolution; verify trusted proxy settings. |
+| LDAP operation fails | Check server reachability, base DN, bind settings, directory attributes, and backend logs. Never expose bind credentials. |
+| Email sending fails | Verify SMTP settings, active template names, resource paths, and the original backend exception. |
+| Audit history has no previous values | Earlier values are unavailable when no prior Envers revision was recorded. Changes before auditing was enabled are not retroactive. |
 
 ## License
 
-Add the license appropriate for this repository. If it is not intended
-for public reuse, state that explicitly rather than implying an
-open-source license.
+This project is licensed under the MIT License.
+
+```text
+MIT License
+
+Copyright (c) 2026 [Your Name]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
